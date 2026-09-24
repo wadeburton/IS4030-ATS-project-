@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.databrickscfg
+.env
+.env.*
+data/
+outputs/
+*.csv
+*.parquet
+*.zip

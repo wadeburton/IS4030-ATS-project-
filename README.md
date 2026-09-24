@@ -2,6 +2,8 @@
 
 An IS 4030 data project by **Skynet Squad**.
 
+**Databricks setup:** Open **Workspace > Shared > IS4030-ATS-project > notebooks**. Follow the [Databricks start guide](docs/DATABRICKS-START-HERE.md) for table locations, notebook order, and role handoffs.
+
 Our final product is an **interactive Databricks dashboard** that helps explain where automated resume matching works well and where a person should review its results. A SQL star schema in Delta Lake supports the dashboard. Two scoring methods supply measurements for the team's analysis.
 
 We are building a small screening experiment, not testing a commercial ATS. Our results will describe our sample and methods, not every hiring system.
@@ -85,6 +87,6 @@ Detailed role instructions and checklists are in [Issue #5](https://github.com/w
 
 ## Current status and limits
 
-This README describes the planned final product. The five issues track implementation; the finished dashboard and validated study results are not yet published here.
+The Databricks foundation is set up: three raw source tables, a source manifest, separate schemas for cleaned inputs and reporting, and an empty one-fact/four-dimension star schema. The setup verified raw row counts of 9,544 resume records, 1,048 job postings, and 10,000 recruitment records. The [source manifest](docs/source-manifest.json) records file hashes and column mappings. Cleaning, model scoring, study validation, and the final dashboard remain tracked by the five issues. No model findings are claimed by this setup.
 
 Similarity alone does not establish matching accuracy. The small human-review sample supports a limited comparison, and synthetic name tests do not prove demographic discrimination or real hiring outcomes. Recommendations will follow the observed results and these limits.
