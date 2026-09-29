@@ -87,6 +87,30 @@ Detailed role instructions and checklists are in [Issue #5](https://github.com/w
 
 ## Current status and limits
 
+### Ranking preview
+
+`notebooks/05_keyword_demo.py` runs the keyword baseline on two synthetic jobs and
+four synthetic resumes, without writing to any tables. The fourth resume is an
+identical-text tie control, not a completed name-swap experiment. Select serverless
+Python compute and run the cells in order. This notebook has been checked locally
+for syntax; its Databricks execution still needs verification.
+
+`ats_scoring.score_keyword` accepts prepared ID/text records, validates inputs,
+fits TF-IDF on the fixed batch, and returns the seven fact-table columns. It ranks
+using full precision with resume ID as a deterministic tie-breaker, then rounds
+scores to three decimals. These are similarity scores, not qualification percentages.
+Evaluation IDs identify one frozen study run; do not append reruns as new observations.
+The missing-input option remains in `prepare_records` before scoring.
+
+Run local checks with `python -m pip install -r requirements.txt`, then
+`python -m unittest discover -s tests -v`.
+
+The intended connection is **Databricks notebook -> Delta results tables -> SQL
+dashboard**. A separate AI agent is unnecessary. The dashboard will filter by job
+and model, show resume rankings, and compare keyword and MiniLM ranking differences.
+MiniLM, human-review integration, name-swap audits, and dashboard publication remain
+unfinished. Do not use separately refitted keyword batches for a paired name audit.
+
 The Databricks foundation is set up: three raw source tables, a source manifest, separate schemas for cleaned inputs and reporting, and an empty one-fact/four-dimension star schema. The setup verified raw row counts of 9,544 resume records, 1,048 job postings, and 10,000 recruitment records. The [source manifest](docs/source-manifest.json) records file hashes and column mappings. Cleaning, model scoring, study validation, and the final dashboard remain tracked by the five issues. No model findings are claimed by this setup.
 
 Similarity alone does not establish matching accuracy. The small human-review sample supports a limited comparison, and synthetic name tests do not prove demographic discrimination or real hiring outcomes. Recommendations will follow the observed results and these limits.
