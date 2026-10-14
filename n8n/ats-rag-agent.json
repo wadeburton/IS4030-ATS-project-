@@ -1,0 +1,108 @@
+{
+  "name": "IS4030 ATS Results RAG Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "public": false,
+        "initialMessages": "Ask about the ATS matching results, model comparison, or limitations.",
+        "options": {}
+      },
+      "id": "3bd10a6a-5b2a-4f53-a531-7df47912cbd2",
+      "name": "ATS Chat",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "ca1364e6-dcc0-4d59-9e02-92848eb135c2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are the IS 4030 ATS project results assistant. Answer user questions only from the fixed Databricks query results available through the Databricks tool and the project facts below. If the tool result does not contain enough evidence, say what is missing.\n\nPROJECT FACTS\n- This is a small classroom comparison of TF-IDF keyword similarity and sentence-transformers/all-MiniLM-L6-v2 semantic similarity.\n- The current preview has 300 resumes, 2 job postings, and 1,200 score rows.\n- The input selection skipped records with missing required text.\n- Resume identifiers are anonymous. The stored results do not include resume text, names, demographic labels, hiring outcomes, or validated human ratings.\n- Scores are text similarity from 0 to 1. They are not hiring probabilities, measures of candidate worth, or proof of model accuracy or discrimination.\n- The job and resume groups are a small study sample, not a representative population or a commercial ATS.\n- Never recommend rejecting or hiring an individual. Explain rankings as exploratory matches and recommend human review.\n\nUse the Databricks tool when a question asks about scores, rankings, jobs, or model comparisons. The tool runs a fixed read-only query that returns model summaries and the top 10 ranked anonymous resume IDs per job and model. Do not claim it searches all underlying resume text. Keep answers clear and cite the job ID, model, score, and rank from retrieved rows where relevant."
+        }
+      },
+      "id": "462ee2f8-a7d9-426a-9d8a-02df61d5b79b",
+      "name": "ATS Results Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "bbcb0470-5792-4554-94ca-9bd65916f345",
+      "name": "Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [420, 520]
+    },
+    {
+      "parameters": {
+        "resource": "databricksSql",
+        "operation": "executeQuery",
+        "warehouseId": {
+          "mode": "id",
+          "value": "b5fcad890d7d8f13"
+        },
+        "query": "WITH scores AS (\n  SELECT\n    CAST(job_id AS STRING) AS job_id,\n    CAST(model_name AS STRING) AS model_name,\n    CAST(resume_id AS STRING) AS resume_id,\n    CAST(similarity_score AS DOUBLE) AS similarity_score,\n    CAST(rank_position AS INT) AS rank_position\n  FROM workspace.is4030_silver.ats_preview_20260929_172928_scores\n  WHERE similarity_score IS NOT NULL\n), summaries AS (\n  SELECT\n    job_id,\n    model_name,\n    COUNT(*) AS rows_count,\n    AVG(similarity_score) AS average_score,\n    MIN(similarity_score) AS minimum_score,\n    MAX(similarity_score) AS maximum_score\n  FROM scores\n  GROUP BY job_id, model_name\n), top_matches AS (\n  SELECT job_id, model_name, resume_id, similarity_score, rank_position\n  FROM scores\n  WHERE rank_position <= 10\n)\nSELECT\n  'SUMMARY' AS record_type, job_id, model_name,\n  CAST(NULL AS STRING) AS resume_id,\n  CAST(NULL AS DOUBLE) AS similarity_score,\n  CAST(NULL AS INT) AS rank_position,\n  rows_count, average_score, minimum_score, maximum_score\nFROM summaries\nUNION ALL\nSELECT\n  'TOP_MATCH' AS record_type, job_id, model_name, resume_id,\n  similarity_score, rank_position,\n  CAST(NULL AS BIGINT) AS rows_count,\n  CAST(NULL AS DOUBLE) AS average_score,\n  CAST(NULL AS DOUBLE) AS minimum_score,\n  CAST(NULL AS DOUBLE) AS maximum_score\nFROM top_matches\nORDER BY record_type, job_id, model_name, rank_position"
+      },
+      "id": "d8a29dce-8307-4fc6-ab2f-f046321f1cdc",
+      "name": "Read ATS Results (Fixed Query)",
+      "type": "n8n-nodes-base.databricks",
+      "typeVersion": 1,
+      "position": [700, 560]
+    }
+  ],
+  "connections": {
+    "ATS Chat": {
+      "main": [
+        [
+          {
+            "node": "ATS Results Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "ATS Results Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read ATS Results (Fixed Query)": {
+      "ai_tool": [
+        [
+          {
+            "node": "ATS Results Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d81f6540-1e0f-4e0a-8d35-318daae6f1df",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
