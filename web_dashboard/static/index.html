@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ATS Screening Workbench</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script src="/assets/workbench.js" defer></script>
+</head>
+<body>
+  <header class="mast"><div class="brand"><span class="mark" aria-hidden="true">◈</span> Screening Workbench</div>
+    <span id="connection" class="pill">Connecting</span>
+  </header>
+  <main>
+    <section class="intro"><div class="intro-copy"><p class="eyebrow">AI RESUME MATCHING</p>
+      <h1>Find candidates</h1><p>Pick a job and review its strongest resume matches.</p></div>
+      <div class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </section>
+    <form id="scan-form" class="card controls">
+      <label>Target job<select id="job" required disabled><option>Loading jobs…</option></select></label>
+      <label>Scoring method<select id="model"><option value="both">Compare both models</option><option value="tfidf">TF-IDF · Keyword</option><option value="minilm">MiniLM · Semantic</option></select></label>
+      <button id="start" type="submit" disabled>Find Candidates <span aria-hidden="true">↗</span></button>
+    </form>
+    <p id="status" role="status">Loading jobs…</p>
+    <section class="metrics" id="metrics" hidden>
+      <div class="card"><span>Resumes scored</span><strong id="count"></strong></div>
+      <div class="card"><span>Resumes skipped</span><strong id="skipped"></strong></div>
+      <div class="card"><span>Data quality</span><strong id="quality"></strong></div>
+    </section>
+    <section class="card results" aria-label="Scan results">
+      <div class="tabs" role="group" aria-label="Results view">
+        <button type="button" class="tab chosen" data-view="ranking" aria-pressed="true">Top Candidates</button>
+        <button type="button" class="tab" data-view="checks" aria-pressed="false">Data Quality</button>
+      </div>
+      <div id="ranking" class="pane">
+        <div class="pane-header"><div><h2 id="result-title">Top 20 matches</h2>
+          <p>Match scores measure text similarity on a 0 to 1 scale.</p></div>
+          <label id="method-wrap" hidden>Ranking by<select id="method"></select></label>
+        </div>
+        <p id="empty" class="empty">Select a job and click Find Candidates to see ranked results.</p>
+        <div class="table-scroll" id="table-wrap" hidden><table>
+          <thead><tr><th scope="col">Rank</th><th scope="col">Candidate ID</th><th scope="col">Match score</th></tr></thead>
+          <tbody id="scores"></tbody>
+        </table></div>
+        <section class="method-note" id="why" hidden><h3>How this score works</h3><p id="method-note"></p></section>
+      </div>
+      <div id="checks" class="pane" hidden><h2>Data quality checks</h2><p id="no-checks">Checks appear after a scan.</p><ul id="check-list"></ul></div>
+    </section>
+  </main>
+</body>
+</html>

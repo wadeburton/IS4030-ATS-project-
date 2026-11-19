@@ -2,6 +2,8 @@
 
 An IS 4030 data project by **Skynet Squad**.
 
+**Standalone dashboard:** Open the [launch guide](web_dashboard/README.md) to run the browser dashboard with demo data or connect it to the Databricks scoring job and Delta tables.
+
 **Databricks setup:** Open **Workspace > Shared > IS4030-ATS-project > notebooks**. Follow the [Databricks start guide](docs/DATABRICKS-START-HERE.md) for table locations, notebook order, and role handoffs.
 
 Our final product is an **interactive Databricks dashboard** that helps explain where automated resume matching works well and where a person should review its results. A SQL star schema in Delta Lake supports the dashboard. Two scoring methods supply measurements for the team's analysis.
