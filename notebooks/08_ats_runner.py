@@ -13,6 +13,7 @@ dbutils.library.restartPython()
 from datetime import datetime, timezone
 from pathlib import Path
 import sys
+from uuid import uuid4
 
 repo_root = str(Path.cwd().parent)
 if repo_root not in sys.path:
@@ -24,6 +25,7 @@ from pyspark.sql.types import StructField, StructType, StringType, IntegerType, 
 dbutils.widgets.text("job_id", "")
 dbutils.widgets.text("model_name", "tfidf")
 dbutils.widgets.text("missing_policy", "skip_missing")
+dbutils.widgets.text("ats_run_id", "")
 job_id = dbutils.widgets.get("job_id")
 model_name = dbutils.widgets.get("model_name")
 missing_policy = dbutils.widgets.get("missing_policy")
@@ -33,7 +35,7 @@ if not job_id:
 
 resume_rows = [row.asDict() for row in spark.table("workspace.is4030_silver.ats_study_resumes").collect()]
 job_rows = [row.asDict() for row in spark.table("workspace.is4030_silver.ats_study_jobs").collect()]
-run_id = str(__import__("uuid").uuid4())
+run_id = dbutils.widgets.get("ats_run_id") or str(uuid4())
 
 try:
     result = run_ats(resume_rows, job_rows, job_id=job_id, model_name=model_name,
@@ -69,8 +71,8 @@ score_schema = StructType([StructField(name, kind, True) for name, kind in [
     ("job_id", StringType()), ("model_name", StringType()), ("similarity_score", DoubleType()),
     ("rank_position", IntegerType()), ("test_condition_id", StringType())]])
 
-spark.createDataFrame([run], run_schema).write.format("delta").mode("append").saveAsTable(f"{ops_schema}.ats_run_metadata")
 spark.createDataFrame(result["quality"]["checks"], check_schema).write.format("delta").mode("append").saveAsTable(f"{ops_schema}.ats_quality_checks")
 spark.createDataFrame(result["scores"], score_schema).write.format("delta").mode("append").saveAsTable(f"{ops_schema}.ats_run_scores")
+spark.createDataFrame([run], run_schema).write.format("delta").mode("append").saveAsTable(f"{ops_schema}.ats_run_metadata")
 
 print(f"Run {run_id}: {run['status']} ({run['score_count']} scores)")

@@ -7,12 +7,12 @@ This first app version combines the resume scan controls, run history, data-qual
 1. Switch the Databricks Git folder to branch `codex/ats-control-dashboard`, then pull the latest project files.
 2. Run `notebooks/07_create_app_tables.sql` in a SQL editor. It creates operational tables and two canonical Silver input tables; it does not replace the existing gold star schema.
 3. Run `notebooks/07_prepare_study_inputs.py` on serverless compute. It prepares 300 records (210 tech/data proxies and 90 controls) and two selected Data Analyst / BI job postings from the existing Bronze tables. This refreshes only `ats_study_resumes` and `ats_study_jobs`.
-4. Create a Lakeflow Job with a notebook task pointing at `notebooks/08_ats_runner.py`. Define job parameters named `job_id`, `model_name`, and `missing_policy`; defaults can be an empty job ID, `tfidf`, and `skip_missing`. The dashboard passes the selected values when it starts a run.
+4. Create a Lakeflow Job with a notebook task pointing at `notebooks/08_ats_runner.py`. Define job parameters named `job_id`, `model_name`, `missing_policy`, and `ats_run_id` with defaults of empty, `tfidf`, `skip_missing`, and empty, respectively. The app passes these values when it starts a scan.
 5. In **Compute > Apps**, create a Streamlit app using the `app/` folder as its source. Add app resources with these exact keys:
    - `sql-warehouse`: the SQL warehouse used by the dashboard. The app reads its ID from this resource and asks the Databricks SDK for its HTTP path.
    - `ats-runner`: the Lakeflow Job created in step 4.
 6. Grant the app access to the SQL warehouse and the Silver/ops tables. The job identity needs read access to the two Silver input tables and write access to the three ops tables. The app needs read access to those tables and permission to run the configured job.
-7. Deploy the app. Use **Run quality checks and scan** to start a run and view its Databricks job status. Use **Refresh run history** after the job completes to load its Delta results.
+7. Deploy the app from the project’s `app/` folder and open its App URL. Choose a job and click **Find Candidates**. The app runs the quality checks and opens the run’s **Top Candidates** view when it finishes. The table displays rank, anonymous candidate ID, and match score. If you ran both models, switch methods to see each model’s top 20.
 
 The app uses its Databricks identity through `Config()`; do not add a personal access token or password to the app files. Grant the app `CAN USE` on the warehouse, `SELECT` on its read tables, and job `Can manage and run` so it can start the scan and read job status. Grant the job's run identity `SELECT` on Silver inputs and `MODIFY` on the ops tables. If table or resource names change, update the constants in `app/app.py` and the notebook/table setup together.
 

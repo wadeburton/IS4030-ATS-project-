@@ -1,4 +1,4 @@
 databricks-sdk
 databricks-sql-connector
 pandas
-streamlit
+streamlit>=1.37
