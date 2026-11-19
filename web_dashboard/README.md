@@ -15,16 +15,16 @@ Open http://127.0.0.1:8050 and select a job. The server binds to localhost for l
 
 ## Connect to Databricks
 
-1. Follow steps 1–4 of [the Databricks setup guide](../docs/DATABRICKS-APP-SETUP.md) to prepare the tables and runner job with the four job parameters. The Databricks App steps are for the older workspace interface.
+1. The IS4030 workspace has an [ATS Scan job](https://dbc-4dc963bf-e25b.cloud.databricks.com/jobs/753433383365592?o=7474654738873265) and a Serverless Starter Warehouse. For another workspace, use steps 1–4 of [the Databricks setup guide](../docs/DATABRICKS-APP-SETUP.md) to create the tables and runner.
 2. Sign in using the Databricks CLI. Your profile needs access to the selected SQL warehouse and prepared data tables, plus permission to start and read the runner job.
 3. Set the warehouse and runner IDs in the same PowerShell window and launch live mode.
 
 ```powershell
 databricks auth login --host https://dbc-4dc963bf-e25b.cloud.databricks.com --profile IS4030
 $env:DATABRICKS_CONFIG_PROFILE = 'IS4030'
-$env:DATABRICKS_WAREHOUSE_ID = '<SQL warehouse ID>'
-$env:ATS_RUNNER_JOB_ID = '<runner job ID>'
-python web_dashboard/server.py --live
+$env:DATABRICKS_WAREHOUSE_ID = 'b5fcad890d7d8f13'
+$env:ATS_RUNNER_JOB_ID = '753433383365592'
+python web_dashboard/server.py --live --port 8051
 ```
 
-API credentials are resolved on the Python server. The browser only receives curated job labels, rank and score rows, and quality checks. Run IDs are tracked for the lifetime of the server. To share a live deployment with teammates, host the server externally behind authenticated access with an appropriately scoped workspace identity.
+Open http://127.0.0.1:8051. API credentials stay on the Python server. The browser receives job labels, candidate IDs, scores, and quality checks. Run IDs are tracked for the lifetime of the server. A shared deployment needs authenticated access and a workspace identity scoped to the warehouse, tables, and scan job.

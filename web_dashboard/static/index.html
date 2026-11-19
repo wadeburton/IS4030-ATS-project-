@@ -7,14 +7,11 @@
   <script src="/assets/workbench.js" defer></script>
 </head>
 <body>
-  <header class="mast"><div class="brand"><span class="mark" aria-hidden="true">◈</span> Screening Workbench</div>
+  <header class="mast"><div class="brand"><span class="mark" aria-hidden="true">▮</span> Skynet Squad / ATS</div>
     <span id="connection" class="pill">Connecting</span>
   </header>
   <main>
-    <section class="intro"><div class="intro-copy"><p class="eyebrow">AI RESUME MATCHING</p>
-      <h1>Find candidates</h1><p>Pick a job and review its strongest resume matches.</p></div>
-      <div class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    </section>
+    <section class="intro"><h1>Candidate search</h1></section>
     <form id="scan-form" class="card controls">
       <label>Target job<select id="job" required disabled><option>Loading jobs…</option></select></label>
       <label>Scoring method<select id="model"><option value="both">Compare both models</option><option value="tfidf">TF-IDF · Keyword</option><option value="minilm">MiniLM · Semantic</option></select></label>
@@ -33,10 +30,10 @@
       </div>
       <div id="ranking" class="pane">
         <div class="pane-header"><div><h2 id="result-title">Top 20 matches</h2>
-          <p>Match scores measure text similarity on a 0 to 1 scale.</p></div>
+          <p>Text similarity · 0 to 1</p></div>
           <label id="method-wrap" hidden>Ranking by<select id="method"></select></label>
         </div>
-        <p id="empty" class="empty">Select a job and click Find Candidates to see ranked results.</p>
+        <p id="empty" class="empty">Choose a job to see its top matches.</p>
         <div class="table-scroll" id="table-wrap" hidden><table>
           <thead><tr><th scope="col">Rank</th><th scope="col">Candidate ID</th><th scope="col">Match score</th></tr></thead>
           <tbody id="scores"></tbody>

@@ -23,6 +23,8 @@ def _prepare(rows, key, *, missing_policy, max_chars):
     if not clean:
         return [], audit, [_check('usable_records', 'failed', input_count=len(rows),
                                   fail_count=len(rows), detail='No rows have usable qualification text.')]
+    for row in clean:
+        row['text'] = row['text'].removeprefix('text: ')
     too_long = [row for row in clean if len(row['text']) > max_chars]
     checks = [_check('valid_required_inputs', 'passed', input_count=len(rows)),
               _check('unique_identifiers', 'passed', input_count=len(clean)),

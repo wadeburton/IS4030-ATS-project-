@@ -65,6 +65,14 @@ class AtsPipelineTests(unittest.TestCase):
 
         self.assertEqual(result['quality']['resume_input_count'], 3)
 
+    def test_character_limit_counts_qualification_text_without_field_label(self):
+        text = 'SQL ' * 249 + 'ETL.'
+        resumes = [{'resume_id': 'r1', 'text': text}]
+        self.assertEqual(len(text), 1000)
+        self.assertEqual(run_ats(resumes, self.jobs, job_id='j1')['run']['status'], 'succeeded')
+        resumes[0]['text'] += ' SQL'
+        self.assertEqual(run_ats(resumes, self.jobs, job_id='j1')['run']['status'], 'blocked')
+
     def test_study_mode_checks_the_planned_70_30_domain_mix(self):
         resumes = [
             {'resume_id': f't{i}', 'text': 'analyst SQL reporting', 'domain_group': 'tech_data_proxy'}
