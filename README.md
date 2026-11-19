@@ -87,6 +87,35 @@ Detailed role instructions and checklists are in [Issue #5](https://github.com/w
 
 ## Current status and limits
 
+### Live Databricks preview
+
+The existing Databricks dashboard is connected to preview tables in
+`workspace.is4030_silver`. Open **Data Intelligence → Dashboards**, then
+**ATS Resume Matching and Screening Consistency**. The dashboard has Matching
+Overview, Keyword vs AI, and Screening Consistency pages.
+
+The 2026-09-29 exploratory run used two LinkedIn postings (Data Analyst and
+Business Intelligence Analyst) and 300 resumes: 210 records labeled for data or
+technology roles and 90 nursing/sales controls. Both TF-IDF and
+`sentence-transformers/all-MiniLM-L6-v2` scored every resume/job pair, producing
+1,200 rows. Missing fields were omitted, unusable rows skipped, and every selected
+resume/job text was capped to 1,000 characters and the model's actual token limit.
+The quality table records these preparation actions. Contact details and the
+recruitment dataset's applicant name were removed from model text.
+
+This is a preview, not the final cleaned study. Role labels are sample-group proxies.
+The model scores differ in scale and must not be compared as percentages. No
+independent human ratings, controlled name-swap results, accuracy claims, or
+demographic discrimination findings are in the dashboard yet. The final score
+tables should later be added to the required fact/dimension schema after the team
+reviews the sample and freezes its study method.
+
+The tables for this run are listed in
+`.build-databricks/deployed-preview-tables.json` on the project owner's computer;
+that file and the source records are intentionally excluded from GitHub. The
+dashboard definition is versioned at
+[`dashboards/ats-screening-preview.lvdash.json`](dashboards/ats-screening-preview.lvdash.json).
+
 ### Ranking preview
 
 `notebooks/05_keyword_demo.py` runs the keyword baseline on two synthetic jobs and
@@ -102,15 +131,28 @@ scores to three decimals. These are similarity scores, not qualification percent
 Evaluation IDs identify one frozen study run; do not append reruns as new observations.
 The missing-input option remains in `prepare_records` before scoring.
 
+### Interactive app build
+
+The first local app and gated run slice now lives under `app/`, `ats_pipeline.py`,
+and `notebooks/07_*` / `08_ats_runner.py`. It supports a selected job and method,
+records per-run quality checks, blocks scores on failed critical checks, and shows
+ranked results and the method inputs in a small Streamlit control surface.
+`docs/DATABRICKS-APP-SETUP.md` lists the Databricks steps to create its tables,
+prepare the study sample, attach the SQL warehouse and runner job, and deploy.
+The four pipeline behaviors have local unit coverage, and the full local suite
+passed on 2026-11-19. The app has not yet been deployed or run against the live
+workspace; table permissions, app resources, and notebook/job execution still need
+workspace verification.
+
 Run local checks with `python -m pip install -r requirements.txt`, then
 `python -m unittest discover -s tests -v`.
 
-The intended connection is **Databricks notebook -> Delta results tables -> SQL
-dashboard**. A separate AI agent is unnecessary. The dashboard will filter by job
-and model, show resume rankings, and compare keyword and MiniLM ranking differences.
-MiniLM, human-review integration, name-swap audits, and dashboard publication remain
-unfinished. Do not use separately refitted keyword batches for a paired name audit.
+The intended connection is **Databricks data -> scoring notebook -> Delta results
+tables -> SQL dashboard**. A separate AI agent is unnecessary. The live preview is
+connected; the repeatable Databricks notebook run and final study workflow still need
+team verification. Do not use separately refitted keyword batches for a paired name
+audit.
 
-The Databricks foundation is set up: three raw source tables, a source manifest, separate schemas for cleaned inputs and reporting, and an empty one-fact/four-dimension star schema. The setup verified raw row counts of 9,544 resume records, 1,048 job postings, and 10,000 recruitment records. The [source manifest](docs/source-manifest.json) records file hashes and column mappings. Cleaning, model scoring, study validation, and the final dashboard remain tracked by the five issues. No model findings are claimed by this setup.
+The Databricks foundation includes three raw source tables, a source manifest, separate schemas for cleaned inputs and reporting, and the required one-fact/four-dimension star schema. Raw row counts were verified at 9,544 resumes, 1,048 job postings, and 10,000 recruitment records. The [source manifest](docs/source-manifest.json) records file hashes and column mappings. The project dashboard now shows exploratory model results; cleaning, human validation, paired identity-cue testing, and final star-schema loading remain tracked by the five issues.
 
 Similarity alone does not establish matching accuracy. The small human-review sample supports a limited comparison, and synthetic name tests do not prove demographic discrimination or real hiring outcomes. Recommendations will follow the observed results and these limits.

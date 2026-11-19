@@ -1,0 +1,458 @@
+{
+  "datasets": [
+    {
+      "name": "scores",
+      "displayName": "Resume match scores",
+      "query": "SELECT * FROM workspace.is4030_silver.ats_preview_20260929_172928_scores"
+    },
+    {
+      "name": "top_matches",
+      "displayName": "Top ten results",
+      "query": "SELECT job_title, company, model_name, resume_id, rank_position, similarity_score, matched_terms, domain_group, source_dataset FROM workspace.is4030_silver.ats_preview_20260929_172928_scores WHERE rank_position <= 10"
+    },
+    {
+      "name": "group_averages",
+      "displayName": "Average similarity by group",
+      "query": "SELECT domain_group, model_name, AVG(similarity_score) AS average_similarity FROM workspace.is4030_silver.ats_preview_20260929_172928_scores GROUP BY domain_group, model_name"
+    },
+    {
+      "name": "data_quality",
+      "displayName": "Missing input and truncation summary",
+      "query": "SELECT source, action, records FROM workspace.is4030_silver.ats_preview_20260929_172928_quality"
+    }
+  ],
+  "pages": [
+    {
+      "name": "41427f5e",
+      "displayName": "Matching Overview",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "intro",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## ATS Resume Matching Preview\n\n300 resumes · 2 job postings · TF-IDF and MiniLM. Scores show text similarity, not hiring probability. Exploratory preview; independent review is pending."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "rankings",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_matches",
+                  "fields": [
+                    {
+                      "name": "job_title",
+                      "expression": "`job_title`"
+                    },
+                    {
+                      "name": "model_name",
+                      "expression": "`model_name`"
+                    },
+                    {
+                      "name": "resume_id",
+                      "expression": "`resume_id`"
+                    },
+                    {
+                      "name": "rank_position",
+                      "expression": "`rank_position`"
+                    },
+                    {
+                      "name": "similarity_score",
+                      "expression": "`similarity_score`"
+                    },
+                    {
+                      "name": "matched_terms",
+                      "expression": "`matched_terms`"
+                    },
+                    {
+                      "name": "domain_group",
+                      "expression": "`domain_group`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_title",
+                    "displayName": "Job posting"
+                  },
+                  {
+                    "fieldName": "model_name",
+                    "displayName": "Scoring method"
+                  },
+                  {
+                    "fieldName": "resume_id",
+                    "displayName": "Resume ID"
+                  },
+                  {
+                    "fieldName": "rank_position",
+                    "displayName": "Rank"
+                  },
+                  {
+                    "fieldName": "similarity_score",
+                    "displayName": "Similarity score (0–1)"
+                  },
+                  {
+                    "fieldName": "matched_terms",
+                    "displayName": "Shared terms"
+                  },
+                  {
+                    "fieldName": "domain_group",
+                    "displayName": "Sample group"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Top 10 candidates for each job and method"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 12,
+            "height": 8
+          }
+        }
+      ]
+    },
+    {
+      "name": "model-comparison",
+      "displayName": "Keyword vs AI",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "compare-note",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Compare model rankings\n\nThe methods use different score scales. Compare rank order and matching text. A higher similarity score does not mean a higher probability of getting hired."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "method-rankings",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_matches",
+                  "fields": [
+                    {
+                      "name": "job_title",
+                      "expression": "`job_title`"
+                    },
+                    {
+                      "name": "model_name",
+                      "expression": "`model_name`"
+                    },
+                    {
+                      "name": "resume_id",
+                      "expression": "`resume_id`"
+                    },
+                    {
+                      "name": "rank_position",
+                      "expression": "`rank_position`"
+                    },
+                    {
+                      "name": "similarity_score",
+                      "expression": "`similarity_score`"
+                    },
+                    {
+                      "name": "matched_terms",
+                      "expression": "`matched_terms`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_title",
+                    "displayName": "Job posting"
+                  },
+                  {
+                    "fieldName": "model_name",
+                    "displayName": "Scoring method"
+                  },
+                  {
+                    "fieldName": "resume_id",
+                    "displayName": "Resume ID"
+                  },
+                  {
+                    "fieldName": "rank_position",
+                    "displayName": "Rank"
+                  },
+                  {
+                    "fieldName": "similarity_score",
+                    "displayName": "Similarity score (0–1)"
+                  },
+                  {
+                    "fieldName": "matched_terms",
+                    "displayName": "Shared terms"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Top 10 results by method"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 8,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "group-score-chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "group_averages",
+                  "fields": [
+                    {
+                      "name": "average_similarity",
+                      "expression": "`average_similarity`"
+                    },
+                    {
+                      "name": "domain_group",
+                      "expression": "`domain_group`"
+                    },
+                    {
+                      "name": "model_name",
+                      "expression": "`model_name`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "average_similarity",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "domain_group",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "color": {
+                  "fieldName": "model_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Average similarity by sample group"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 2,
+            "width": 4,
+            "height": 8
+          }
+        }
+      ]
+    },
+    {
+      "name": "consistency",
+      "displayName": "Screening Consistency",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "consistency-note",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Screening consistency checks\n\nThis preview compares score patterns across technology/data and out-of-domain sample groups. These are dataset role labels, not demographic groups. Human ratings and the paired synthetic name-swap experiment have not been run, so this page does not establish accuracy or bias."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "group-scores",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "group_averages",
+                  "fields": [
+                    {
+                      "name": "average_similarity",
+                      "expression": "`average_similarity`"
+                    },
+                    {
+                      "name": "domain_group",
+                      "expression": "`domain_group`"
+                    },
+                    {
+                      "name": "model_name",
+                      "expression": "`model_name`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "average_similarity",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "domain_group",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "color": {
+                  "fieldName": "model_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Average similarity by group and method"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 7,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "quality-summary",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "data_quality",
+                  "fields": [
+                    {
+                      "name": "source",
+                      "expression": "`source`"
+                    },
+                    {
+                      "name": "action",
+                      "expression": "`action`"
+                    },
+                    {
+                      "name": "records",
+                      "expression": "`records`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "source",
+                    "displayName": "Data source"
+                  },
+                  {
+                    "fieldName": "action",
+                    "displayName": "Preparation action"
+                  },
+                  {
+                    "fieldName": "records",
+                    "displayName": "Record count"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Skipped missing inputs and text length limits"
+              }
+            }
+          },
+          "position": {
+            "x": 7,
+            "y": 3,
+            "width": 5,
+            "height": 7
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
