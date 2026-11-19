@@ -28,3 +28,11 @@ python web_dashboard/server.py --live --port 8051
 ```
 
 Open http://127.0.0.1:8051. API credentials stay on the Python server. The browser receives job labels, candidate IDs, scores, and quality checks. Run IDs are tracked for the lifetime of the server. A shared deployment needs authenticated access and a workspace identity scoped to the warehouse, tables, and scan job.
+
+## Demo flow
+
+1. Pick a posting and click **Find Candidates**. The app loads the latest successful saved Databricks run for that posting and method, with the time it was scored. A **Compare both models** request uses a run that scored both models.
+2. Search by candidate ID or text in the prepared resume. Results include matching candidates outside the original top 20. Click a candidate ID to see their available scores, ranks, source, and tracked skill terms found in the job and resume.
+3. Open **Charts** to see the score distribution and sample mix for the current ranking method. These charts use the full scored cohort.
+4. Open **Data Quality** and click **Fix Data** to trim leading and trailing spaces in usable prepared text. It checks for leftover spaces, missing inputs, and duplicate IDs. Missing fields and duplicates stay available for review. The app does not write to the raw tables.
+5. Use **Re-run scoring** to request a fresh Databricks job. Keep the warehouse available and open the dashboard shortly before presenting so you can confirm both jobs have saved results.

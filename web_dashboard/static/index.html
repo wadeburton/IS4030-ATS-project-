@@ -16,6 +16,7 @@
       <label>Target job<select id="job" required disabled><option>Loading jobs…</option></select></label>
       <label>Scoring method<select id="model"><option value="both">Compare both models</option><option value="tfidf">TF-IDF · Keyword</option><option value="minilm">MiniLM · Semantic</option></select></label>
       <button id="start" type="submit" disabled>Find Candidates <span aria-hidden="true">↗</span></button>
+      <button id="rescan" type="button" class="secondary" disabled>Re-run scoring</button>
     </form>
     <p id="status" role="status">Loading jobs…</p>
     <section class="metrics" id="metrics" hidden>
@@ -26,6 +27,7 @@
     <section class="card results" aria-label="Scan results">
       <div class="tabs" role="group" aria-label="Results view">
         <button type="button" class="tab chosen" data-view="ranking" aria-pressed="true">Top Candidates</button>
+        <button type="button" class="tab" data-view="charts" aria-pressed="false">Charts</button>
         <button type="button" class="tab" data-view="checks" aria-pressed="false">Data Quality</button>
       </div>
       <div id="ranking" class="pane">
@@ -34,14 +36,38 @@
           <label id="method-wrap" hidden>Ranking by<select id="method"></select></label>
         </div>
         <p id="empty" class="empty">Choose a job to see its top matches.</p>
+        <form id="search-form" class="search" hidden>
+          <label>Search scored candidates<input id="candidate-search" type="search" maxlength="80" placeholder="Candidate ID or skill, e.g. SQL"></label>
+          <button class="secondary" type="submit">Search</button>
+          <button class="secondary" type="reset">Clear</button>
+        </form>
+        <p id="search-status" role="status"></p>
         <div class="table-scroll" id="table-wrap" hidden><table>
           <thead><tr><th scope="col">Rank</th><th scope="col">Candidate ID</th><th scope="col">Match score</th></tr></thead>
           <tbody id="scores"></tbody>
         </table></div>
         <section class="method-note" id="why" hidden><h3>How this score works</h3><p id="method-note"></p></section>
       </div>
-      <div id="checks" class="pane" hidden><h2>Data quality checks</h2><p id="no-checks">Checks appear after a scan.</p><ul id="check-list"></ul></div>
+      <div id="charts" class="pane" hidden>
+        <h2>Score distribution</h2><p>All scored resumes for the selected method.</p><div id="distribution"></div>
+        <h2>Sample mix</h2><div id="sample-mix"></div>
+      </div>
+      <div id="checks" class="pane" hidden>
+        <div class="pane-header"><div><h2>Data quality</h2><p>Trim extra spaces in prepared text and check for missing fields and duplicate IDs.</p></div>
+          <button id="fix-data" class="secondary" type="button" disabled>Fix Data</button>
+        </div>
+        <p id="fix-status" role="status"></p><ul id="fix-summary"></ul>
+        <p id="no-checks">Scan checks appear after you load rankings.</p><ul id="check-list"></ul>
+      </div>
     </section>
+    <dialog id="candidate-detail">
+      <div class="pane-header"><h2 id="candidate-title">Candidate details</h2>
+        <form method="dialog"><button class="secondary">Close</button></form>
+      </div>
+      <p id="candidate-source"></p><ul id="candidate-scores"></ul>
+      <h3>Skills mentioned in both texts</h3><p id="candidate-evidence" role="status"></p>
+      <h3>Job skills without a text match</h3><p id="candidate-gap"></p>
+    </dialog>
   </main>
 </body>
 </html>

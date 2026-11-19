@@ -7,6 +7,7 @@ const notes = {
 };
 let result = null;
 let live = false;
+let matchingIds = null;
 
 async function api(path, options) {
   const response = await fetch(path, {...options, cache: "no-store"});
@@ -32,13 +33,26 @@ for (const tab of document.querySelectorAll(".tab")) {
 
 function renderRanking() {
   const method = byId("method").value;
-  const rows = result?.scores?.filter((row) => row.model_name === method) || [];
+  const cohort = result?.scores?.filter((row) => row.model_name === method) || [];
+  const matches = matchingIds ? cohort.filter((row) => matchingIds.has(row.resume_id)) : cohort;
+  const rows = matches.slice(0, 20);
+  byId("search-form").hidden = !cohort.length;
+  if (matchingIds) {
+    byId("search-status").textContent = `${matches.length} matches · showing ${rows.length}`;
+    byId("empty").textContent = "No candidates match this search.";
+  }
+  renderCharts(cohort);
   const body = byId("scores");
   body.replaceChildren();
   for (const row of rows) {
     const tr = body.insertRow();
     tr.insertCell().textContent = row.rank_position;
-    tr.insertCell().textContent = row.resume_id;
+    const candidate = document.createElement("button");
+    candidate.type = "button";
+    candidate.className = "candidate-link";
+    candidate.textContent = row.resume_id;
+    candidate.addEventListener("click", () => showCandidate(row));
+    tr.insertCell().append(candidate);
     const score = Number(row.similarity_score);
     const cell = tr.insertCell();
     cell.className = "score";
@@ -59,6 +73,116 @@ function renderRanking() {
   byId("method-note").textContent = notes[method] || "";
 }
 byId("method").addEventListener("change", renderRanking);
+
+function renderCharts(rows) {
+  const bins = [0, 0, 0, 0, 0];
+  for (const row of rows) bins[Math.min(4, Math.floor(Number(row.similarity_score) * 5))]++;
+  chart("distribution", ["0–<0.2", "0.2–<0.4", "0.4–<0.6", "0.6–<0.8", "0.8–1.0"]
+    .map((label, i) => [label, bins[i]]), rows.length);
+  const groups = new Map();
+  for (const row of rows) {
+    const label = {tech_data_proxy: "Tech/data", control: "Control"}[row.domain_group] || "Unclassified";
+    groups.set(label, (groups.get(label) || 0) + 1);
+  }
+  chart("sample-mix", [...groups], rows.length);
+}
+
+function chart(id, entries, total) {
+  const container = byId(id);
+  container.className = "chart";
+  container.replaceChildren();
+  if (!total) {
+    container.textContent = "Load rankings to see this chart.";
+    return;
+  }
+  for (const [label, count] of entries) {
+    const row = document.createElement("div");
+    row.className = "chart-row";
+    const name = document.createElement("span");
+    name.textContent = label;
+    const track = document.createElement("span");
+    track.className = "track";
+    track.setAttribute("aria-hidden", "true");
+    const bar = document.createElement("span");
+    bar.className = "fill";
+    bar.style.width = (100 * count / total) + "%";
+    track.append(bar);
+    const value = document.createElement("span");
+    value.textContent = count;
+    row.append(name, track, value);
+    container.append(row);
+  }
+}
+
+async function showCandidate(row) {
+  const dialog = byId("candidate-detail");
+  byId("candidate-title").textContent = row.resume_id;
+  byId("candidate-source").textContent = `Source: ${row.source_dataset || "Unknown"} · ${row.domain_group === "tech_data_proxy" ? "Tech/data" : row.domain_group || "Unclassified"}`;
+  const list = byId("candidate-scores");
+  list.replaceChildren();
+  for (const score of result.scores.filter((item) => item.resume_id === row.resume_id)) {
+    const li = document.createElement("li");
+    li.textContent = `${methods[score.model_name]} · rank ${score.rank_position} · score ${Number(score.similarity_score).toFixed(3)}`;
+    list.append(li);
+  }
+  byId("candidate-evidence").textContent = live ? "Loading skills…" : "Skill evidence is available in live mode.";
+  byId("candidate-gap").textContent = "";
+  dialog.showModal();
+  if (!live) return;
+  try {
+    const evidence = await api(`/api/saved/${result.run_id}/evidence?candidate=${encodeURIComponent(row.resume_id)}`);
+    if (byId("candidate-title").textContent !== row.resume_id) return;
+    byId("candidate-evidence").textContent = evidence.matched.join(", ") || "No tracked skills overlap.";
+    byId("candidate-gap").textContent = evidence.not_found.join(", ") || "None among the tracked terms.";
+  } catch (error) {
+    if (byId("candidate-title").textContent === row.resume_id) byId("candidate-evidence").textContent = error.message;
+  }
+}
+
+byId("search-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const term = byId("candidate-search").value.trim();
+  if (term.length < 2) {
+    byId("search-status").textContent = "Enter at least two characters.";
+    return;
+  }
+  const current = result;
+  byId("search-status").textContent = "Searching…";
+  try {
+    const ids = live ? (await api(`/api/saved/${current.run_id}/search?q=${encodeURIComponent(term)}`)).ids
+      : current.scores.filter((row) => row.resume_id.toLowerCase().includes(term.toLowerCase())).map((row) => row.resume_id);
+    if (result !== current || byId("candidate-search").value.trim() !== term) return;
+    matchingIds = new Set(ids);
+    renderRanking();
+  } catch (error) {
+    if (result === current) byId("search-status").textContent = error.message;
+  }
+});
+byId("search-form").addEventListener("reset", () => {
+  matchingIds = null;
+  byId("search-status").textContent = "";
+  renderRanking();
+});
+
+byId("fix-data").addEventListener("click", async () => {
+  const button = byId("fix-data");
+  button.disabled = true;
+  byId("fix-status").textContent = "Checking prepared data…";
+  byId("fix-summary").replaceChildren();
+  try {
+    const data = await api("/api/fix-data", {method: "POST", headers: {"Content-Type": "application/json"}, body: "{}"});
+    for (const row of data.summary) {
+      const li = document.createElement("li");
+      li.textContent = `${row.table} · ${row.trimmed ?? "Unknown number of"} trimmed · ${row.remaining_spaces} still need trimming · ${row.missing_text} missing text · ${row.missing_ids} missing IDs · ${row.duplicate_ids} duplicate IDs`;
+      byId("fix-summary").append(li);
+    }
+    byId("fix-status").textContent = "Cleanup checked. Review any missing fields or duplicate IDs.";
+  } catch (error) {
+    byId("fix-status").textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
 
 function renderChecks(checks) {
   byId("no-checks").hidden = checks.length > 0;
@@ -82,6 +206,7 @@ async function initialize() {
   try {
     const data = await api("/api/jobs");
     live = data.mode === "live";
+    byId("fix-data").disabled = false;
     byId("connection").textContent = live ? "Databricks connected" : "Demo · synthetic data";
     const job = byId("job");
     job.replaceChildren(new Option("Select a job", ""));
@@ -90,7 +215,7 @@ async function initialize() {
       job.add(new Option(row.company ? row.title + " · " + row.company : row.title, row.job_id));
     }
     job.disabled = !data.jobs.length;
-    job.addEventListener("change", () => { byId("start").disabled = !job.value; });
+    job.addEventListener("change", () => { byId("start").disabled = byId("rescan").disabled = !job.value; });
     status(data.jobs.length ? "" : "No prepared study jobs are available.");
   } catch (error) {
     byId("connection").textContent = "Connection unavailable";
@@ -98,21 +223,25 @@ async function initialize() {
   }
 }
 
-byId("scan-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
+async function loadMatches(fresh) {
   const job = byId("job");
   const model = byId("model");
   const start = byId("start");
-  start.disabled = job.disabled = model.disabled = true;
+  const rescan = byId("rescan");
+  start.disabled = rescan.disabled = job.disabled = model.disabled = true;
   result = null;
+  matchingIds = null;
+  byId("candidate-search").value = "";
+  byId("search-status").textContent = "";
   byId("metrics").hidden = byId("method-wrap").hidden = true;
   byId("result-title").textContent = "Top 20 matches";
-  byId("empty").textContent = "Waiting for the scan to finish.";
+  byId("empty").textContent = fresh ? "Waiting for the scan." : "Loading saved rankings.";
   renderRanking();
   renderChecks([]);
   showView("ranking");
-  status("Starting scan…");
+  status(fresh ? "Starting scan…" : "Loading saved rankings…");
   try {
+    if (fresh) {
     const scan = await api("/api/scans", {
       method: "POST", headers: {"Content-Type": "application/json"},
       body: JSON.stringify({job_id: job.value, model: model.value})
@@ -123,12 +252,17 @@ byId("scan-form").addEventListener("submit", async (event) => {
       status("Scan status · " + result.status.replaceAll("_", " "));
       await new Promise((resolve) => setTimeout(resolve, live ? 4000 : 900));
     }
+    } else {
+      const params = new URLSearchParams({job_id: job.value, model: model.value});
+      result = await api("/api/saved?" + params);
+    }
     const scored = result.status === "succeeded";
     byId("metrics").hidden = !result.quality_status;
     byId("count").textContent = scored ? result.resume_count : "0";
     byId("skipped").textContent = result.skipped_resume_count ?? "—";
     byId("quality").textContent = result.quality_status ?? "—";
-    const available = [...new Set((result.scores || []).map((row) => row.model_name))];
+    const available = [...new Set((result.scores || []).map((row) => row.model_name))]
+      .filter((name) => model.value === "both" || name === model.value);
     byId("method").replaceChildren(...available.map((name) => new Option(methods[name], name)));
     byId("method-wrap").hidden = available.length < 2;
     byId("result-title").textContent = "Top 20 · " + job.selectedOptions[0].text.split(" · ")[0];
@@ -136,13 +270,21 @@ byId("scan-form").addEventListener("submit", async (event) => {
     renderChecks(result.checks || []);
     renderRanking();
     if (result.status === "blocked") showView("checks");
-    status(scored ? "Scan complete." : result.error || "Scan " + result.status + ". Review Data Quality for details.", !scored);
+    const time = result.completed_at ? new Date(result.completed_at).toLocaleString() : "";
+    status(scored ? (fresh ? "Scan complete" : "Saved rankings") + (time ? " · Scored " + time : "")
+      : result.error || "Scan " + result.status + ". Review Data Quality for details.", !scored);
   } catch (error) {
     status(error.message, true);
     byId("empty").textContent = "No rankings available. Try another scan.";
   } finally {
-    start.disabled = job.disabled = model.disabled = false;
+    start.disabled = rescan.disabled = job.disabled = model.disabled = false;
   }
+}
+byId("scan-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  loadMatches(false);
 });
+byId("rescan").addEventListener("click", () => loadMatches(true));
 
+renderRanking();
 initialize();
