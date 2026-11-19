@@ -4,7 +4,7 @@ This first app version combines the resume scan controls, run history, data-qual
 
 ## One-time workspace setup
 
-1. Pull the latest project files into the Databricks Git folder.
+1. Switch the Databricks Git folder to branch `codex/ats-control-dashboard`, then pull the latest project files.
 2. Run `notebooks/07_create_app_tables.sql` in a SQL editor. It creates operational tables and two canonical Silver input tables; it does not replace the existing gold star schema.
 3. Run `notebooks/07_prepare_study_inputs.py` on serverless compute. It prepares 300 records (210 tech/data proxies and 90 controls) and two selected Data Analyst / BI job postings from the existing Bronze tables. This refreshes only `ats_study_resumes` and `ats_study_jobs`.
 4. Create a Lakeflow Job with a notebook task pointing at `notebooks/08_ats_runner.py`. Define job parameters named `job_id`, `model_name`, and `missing_policy`; defaults can be an empty job ID, `tfidf`, and `skip_missing`. The dashboard passes the selected values when it starts a run.
