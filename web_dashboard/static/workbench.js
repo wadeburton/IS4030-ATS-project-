@@ -73,18 +73,91 @@ function renderRanking() {
   byId("method-note").textContent = notes[method] || "";
 }
 byId("method").addEventListener("change", renderRanking);
+byId("analytics-method").addEventListener("change", () => {
+  byId("method").value = byId("analytics-method").value;
+  renderRanking();
+});
+
+function medianScore(rows) {
+  const scores = rows.map((row) => Number(row.similarity_score)).sort((a, b) => a - b);
+  const middle = Math.floor(scores.length / 2);
+  return scores.length % 2 ? scores[middle] : (scores[middle - 1] + scores[middle]) / 2;
+}
+
+function addRow(container, values) {
+  const row = container.insertRow();
+  for (const value of values) row.insertCell().textContent = value;
+  return row;
+}
 
 function renderCharts(rows) {
+  const method = byId("method").value;
+  byId("analytics-method").value = method;
+  byId("analytics-body").hidden = !rows.length;
+  byId("analytics-context").textContent = rows.length
+    ? `${result.job_title} · ${methods[method]} · ${rows.length} scored resumes`
+    : "Load rankings to see the sample and scores.";
+  if (!rows.length) return;
+  const scores = rows.map((row) => Number(row.similarity_score));
+  const skipped = result.skipped_resume_count ?? 0;
+  byId("score-summary").textContent = `Median score ${medianScore(rows).toFixed(3)} · Range ${Math.min(...scores).toFixed(3)} to ${Math.max(...scores).toFixed(3)} · ${skipped} resumes skipped`;
   const bins = [0, 0, 0, 0, 0];
   for (const row of rows) bins[Math.min(4, Math.floor(Number(row.similarity_score) * 5))]++;
   chart("distribution", ["0–<0.2", "0.2–<0.4", "0.4–<0.6", "0.6–<0.8", "0.8–1.0"]
     .map((label, i) => [label, bins[i]]), rows.length);
   const groups = new Map();
+  const sources = new Map();
   for (const row of rows) {
     const label = {tech_data_proxy: "Tech/data", control: "Control"}[row.domain_group] || "Unclassified";
-    groups.set(label, (groups.get(label) || 0) + 1);
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(row);
+    const source = {structured: "Resume dataset", recruitment: "Recruitment dataset"}[row.source_dataset]
+      || row.source_dataset || "Unknown";
+    sources.set(source, (sources.get(source) || 0) + 1);
   }
-  chart("sample-mix", [...groups], rows.length);
+  chart("source-mix", [...sources].sort((a, b) => b[1] - a[1]), rows.length);
+  const breakdown = byId("group-results");
+  breakdown.replaceChildren();
+  for (const [label, group] of [...groups].sort((a, b) => b[1].length - a[1].length)) {
+    const share = (group.length / rows.length * 100).toFixed(0);
+    addRow(breakdown, [label, `${group.length} (${share}%)`, medianScore(group).toFixed(3),
+      group.filter((row) => row.rank_position <= 20).length]);
+  }
+  renderOverlap();
+}
+
+function renderOverlap() {
+  const ranks = {tfidf: new Map(), minilm: new Map()};
+  for (const row of result.scores) ranks[row.model_name]?.set(row.resume_id, row);
+  const summary = byId("overlap-summary");
+  const changes = byId("rank-differences");
+  changes.replaceChildren();
+  byId("rank-changes").hidden = true;
+  if (!ranks.tfidf.size || ranks.tfidf.size !== ranks.minilm.size ||
+      ![...ranks.tfidf.keys()].every((id) => ranks.minilm.has(id))) {
+    summary.textContent = "Load a run that scored the same resumes with both models to compare ranks.";
+    return;
+  }
+  const compared = [...ranks.tfidf].map(([id, keyword]) => ({id, keyword, semantic: ranks.minilm.get(id)}));
+  const keywordTop = compared.filter(({keyword}) => keyword.rank_position <= 20);
+  const semanticTop = compared.filter(({semantic}) => semantic.rank_position <= 20);
+  const shared = keywordTop.filter(({semantic}) => semantic.rank_position <= 20).length;
+  summary.textContent = `${shared} in both lists · ${keywordTop.length - shared} only in TF-IDF · ${semanticTop.length - shared} only in MiniLM`;
+  const differences = compared.filter(({keyword, semantic}) => Math.min(keyword.rank_position, semantic.rank_position) <= 20)
+    .map((row) => ({...row, gap: Math.abs(row.keyword.rank_position - row.semantic.rank_position)}))
+    .filter((row) => row.gap > 0)
+    .sort((a, b) => b.gap - a.gap || a.id.localeCompare(b.id))
+    .slice(0, 5);
+  byId("rank-changes").hidden = !differences.length;
+  for (const row of differences) {
+    const tr = addRow(changes, ["", row.keyword.rank_position, row.semantic.rank_position, row.gap]);
+    const link = document.createElement("button");
+    link.type = "button";
+    link.className = "candidate-link";
+    link.textContent = row.id;
+    link.addEventListener("click", () => showCandidate(row.keyword));
+    tr.cells[0].append(link);
+  }
 }
 
 function chart(id, entries, total) {
@@ -233,7 +306,7 @@ async function loadMatches(fresh) {
   matchingIds = null;
   byId("candidate-search").value = "";
   byId("search-status").textContent = "";
-  byId("metrics").hidden = byId("method-wrap").hidden = true;
+  byId("metrics").hidden = byId("method-wrap").hidden = byId("analytics-method-wrap").hidden = true;
   byId("result-title").textContent = "Top 20 matches";
   byId("empty").textContent = fresh ? "Waiting for the scan." : "Loading saved rankings.";
   renderRanking();
@@ -264,8 +337,11 @@ async function loadMatches(fresh) {
     const available = [...new Set((result.scores || []).map((row) => row.model_name))]
       .filter((name) => model.value === "both" || name === model.value);
     byId("method").replaceChildren(...available.map((name) => new Option(methods[name], name)));
+    byId("analytics-method").replaceChildren(...available.map((name) => new Option(methods[name], name)));
     byId("method-wrap").hidden = available.length < 2;
-    byId("result-title").textContent = "Top 20 · " + job.selectedOptions[0].text.split(" · ")[0];
+    byId("analytics-method-wrap").hidden = available.length < 2;
+    result.job_title = job.selectedOptions[0].text.split(" · ")[0];
+    byId("result-title").textContent = "Top 20 · " + result.job_title;
     byId("empty").textContent = scored ? "No candidate matches were saved." : "No rankings are available for this scan.";
     renderChecks(result.checks || []);
     renderRanking();

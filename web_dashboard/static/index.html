@@ -27,7 +27,7 @@
     <section class="card results" aria-label="Scan results">
       <div class="tabs" role="group" aria-label="Results view">
         <button type="button" class="tab chosen" data-view="ranking" aria-pressed="true">Top Candidates</button>
-        <button type="button" class="tab" data-view="charts" aria-pressed="false">Charts</button>
+        <button type="button" class="tab" data-view="charts" aria-pressed="false">Analytics</button>
         <button type="button" class="tab" data-view="checks" aria-pressed="false">Data Quality</button>
       </div>
       <div id="ranking" class="pane">
@@ -49,8 +49,33 @@
         <section class="method-note" id="why" hidden><h3>How this score works</h3><p id="method-note"></p></section>
       </div>
       <div id="charts" class="pane" hidden>
-        <h2>Score distribution</h2><p>All scored resumes for the selected method.</p><div id="distribution"></div>
-        <h2>Sample mix</h2><div id="sample-mix"></div>
+        <div class="pane-header">
+          <div><h2>Scan summary</h2><p id="analytics-context">Load rankings to see the sample and scores.</p></div>
+          <label id="analytics-method-wrap" hidden>Scoring method<select id="analytics-method"></select></label>
+        </div>
+        <div id="analytics-body" hidden>
+          <p class="analytics-summary" id="score-summary"></p>
+          <div class="analytics-grid">
+            <section><h3>Score distribution</h3><div id="distribution"></div></section>
+            <section><h3>Resumes by dataset</h3><div id="source-mix"></div></section>
+          </div>
+          <h3>Results by sample group</h3>
+          <div class="table-scroll"><table>
+            <thead><tr><th scope="col">Group</th><th scope="col">Scored</th><th scope="col">Median score</th><th scope="col">In top 20</th></tr></thead>
+            <tbody id="group-results"></tbody>
+          </table></div>
+          <section class="comparison">
+            <h3>Top 20 overlap</h3><p id="overlap-summary"></p>
+            <div id="rank-changes" hidden>
+              <h3>Biggest rank differences among either model’s top 20</h3>
+              <div class="table-scroll"><table>
+                <thead><tr><th scope="col">Candidate ID</th><th scope="col">TF-IDF rank</th><th scope="col">MiniLM rank</th><th scope="col">Places apart</th></tr></thead>
+                <tbody id="rank-differences"></tbody>
+              </table></div>
+            </div>
+          </section>
+          <p class="analytics-footnote">Scores describe text similarity within this sample. Rank overlap measures agreement between the models.</p>
+        </div>
       </div>
       <div id="checks" class="pane" hidden>
         <div class="pane-header"><div><h2>Data quality</h2><p>Trim extra spaces in prepared text and check for missing fields and duplicate IDs.</p></div>
