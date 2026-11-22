@@ -38,7 +38,7 @@ Users will filter by job and model, with relevant/control categories and experim
 ## Study scope
 
 - **One job family:** Data Analyst / Business Intelligence.
-- **2–3 target job postings and 300–500 resumes:** 70% tech/data relevant and 30% out-of-domain controls, such as healthcare or sales.
+- **2–20 target job postings and 300–500 resumes:** 70% tech/data relevant and 30% out-of-domain controls, such as healthcare or sales. (Widened from the original 2–3 on 2026-11-19 to give the dashboard a fuller real job catalog; the pipeline's `study_job_count` gate enforces this range and blocks every scan if the live table ever falls outside it.)
 - **Keyword baseline:** scikit-learn TF-IDF and cosine similarity.
 - **AI method:** pretrained [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) embeddings and cosine similarity. We are not training a model from scratch.
 - **Human review:** 30–50 unique resume/job pairs rated with a documented 1–5 rubric.
@@ -108,9 +108,18 @@ recruitment dataset's applicant name were removed from model text.
 This is a preview, not the final cleaned study. Role labels are sample-group proxies.
 The model scores differ in scale and must not be compared as percentages. No
 independent human ratings, controlled name-swap results, accuracy claims, or
-demographic discrimination findings are in the dashboard yet. The final score
-tables should later be added to the required fact/dimension schema after the team
-reviews the sample and freezes its study method.
+demographic discrimination findings are in the dashboard yet.
+
+**Gold star schema status (2026-11-19):** `notebooks/09_load_gold_star_schema.py` now loads
+the 1-fact/4-dimension schema in `workspace.is4030_gold` from the frozen Silver study inputs
+and the latest succeeded run per job/model in the ops tables. `dim_job` covers all 20 real
+postings and `fact_evaluation` holds 12,000 rows (20 postings × 2 models × 300 resumes, all
+scored on 2026-11-19). Verified zero
+duplicate grain rows, zero invalid scores/ranks, and zero orphaned fact rows against the
+dimensions. Note for reproducing this: any job text added by hand must stay at or under
+1,000 characters after MiniLM token-bounding — the pipeline's `text_character_limit` check
+blocks the *entire* scoring run if any job or resume exceeds that, even for jobs other than
+the one you're scoring.
 
 The tables for this run are listed in
 `.build-databricks/deployed-preview-tables.json` on the project owner's computer;

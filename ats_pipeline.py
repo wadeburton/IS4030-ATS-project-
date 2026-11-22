@@ -112,9 +112,9 @@ def run_ats(resumes, jobs, *, job_id, model_name='tfidf', missing_policy='skip_m
                                  detail='Study runs require 300–500 usable resumes.'))
         else:
             checks.append(_check('study_resume_count', 'passed', input_count=len(clean_resumes)))
-        if not 2 <= len(clean_jobs) <= 3:
+        if not 2 <= len(clean_jobs) <= 20:
             checks.append(_check('study_job_count', 'failed', input_count=len(clean_jobs), fail_count=1,
-                                 detail='Study runs require 2–3 usable jobs.'))
+                                 detail='Study runs require 2–20 usable jobs.'))
         else:
             checks.append(_check('study_job_count', 'passed', input_count=len(clean_jobs)))
         domain_labels = [row.get('domain_group') for row in resumes]

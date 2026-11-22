@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" font-family="Segoe UI, Arial, sans-serif">
+  <rect x="0" y="0" width="1200" height="900" fill="#ffffff"/>
+  <text x="600" y="40" text-anchor="middle" font-size="24" font-weight="700" fill="#1a1a1a">AI Resume Matching &amp; Screening Consistency — Gold Star Schema</text>
+  <text x="600" y="66" text-anchor="middle" font-size="13" fill="#5b5b5b">workspace.is4030_gold · 1 fact table, 4 dimension tables</text>
+
+  <!-- connecting lines (drawn first so boxes sit on top) -->
+  <g stroke="#9a9a9a" stroke-width="1.5" fill="none">
+    <line x1="290" y1="250" x2="500" y2="380"/>
+    <line x1="910" y1="250" x2="700" y2="380"/>
+    <line x1="290" y1="650" x2="500" y2="530"/>
+    <line x1="910" y1="650" x2="700" y2="530"/>
+  </g>
+  <g font-size="12" fill="#5b5b5b">
+    <text x="330" y="300">1</text><text x="470" y="368">N</text>
+    <text x="865" y="300">1</text><text x="715" y="368">N</text>
+    <text x="330" y="610">1</text><text x="470" y="545">N</text>
+    <text x="865" y="610">1</text><text x="715" y="545">N</text>
+  </g>
+
+  <!-- dim_resume (top-left) -->
+  <g>
+    <rect x="60" y="120" width="230" height="130" fill="#ffffff" stroke="#44546a" stroke-width="1.5"/>
+    <rect x="60" y="120" width="230" height="30" fill="#44546a"/>
+    <text x="175" y="140" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">dim_resume</text>
+    <g font-size="12.5" fill="#1a1a1a">
+      <text x="72" y="168" font-weight="700" text-decoration="underline">resume_id</text>
+      <text x="72" y="186">source_dataset</text>
+      <text x="72" y="204">source_row_id</text>
+      <text x="72" y="222">domain_group</text>
+      <text x="72" y="240">qualification_text</text>
+    </g>
+  </g>
+
+  <!-- dim_job (top-right) -->
+  <g>
+    <rect x="900" y="100" width="240" height="170" fill="#ffffff" stroke="#44546a" stroke-width="1.5"/>
+    <rect x="900" y="100" width="240" height="30" fill="#44546a"/>
+    <text x="1020" y="120" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">dim_job</text>
+    <g font-size="12.5" fill="#1a1a1a">
+      <text x="912" y="148" font-weight="700" text-decoration="underline">job_id</text>
+      <text x="912" y="166">title</text>
+      <text x="912" y="184">company</text>
+      <text x="912" y="202">job_family</text>
+      <text x="912" y="220">requirements_text</text>
+      <text x="912" y="238">source_dataset</text>
+      <text x="912" y="256">source_row_id</text>
+    </g>
+  </g>
+
+  <!-- dim_model (bottom-left) -->
+  <g>
+    <rect x="60" y="650" width="230" height="90" fill="#ffffff" stroke="#44546a" stroke-width="1.5"/>
+    <rect x="60" y="650" width="230" height="30" fill="#44546a"/>
+    <text x="175" y="670" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">dim_model</text>
+    <g font-size="12.5" fill="#1a1a1a">
+      <text x="72" y="698" font-weight="700" text-decoration="underline">model_name</text>
+      <text x="72" y="716">method</text>
+      <text x="72" y="734">model_version</text>
+    </g>
+  </g>
+
+  <!-- dim_test_condition (bottom-right) -->
+  <g>
+    <rect x="900" y="650" width="240" height="70" fill="#ffffff" stroke="#44546a" stroke-width="1.5"/>
+    <rect x="900" y="650" width="240" height="30" fill="#44546a"/>
+    <text x="1020" y="670" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">dim_test_condition</text>
+    <g font-size="12.5" fill="#1a1a1a">
+      <text x="912" y="698" font-weight="700" text-decoration="underline">test_condition_id</text>
+      <text x="912" y="716">description</text>
+    </g>
+  </g>
+
+  <!-- fact_evaluation (center) -->
+  <g>
+    <rect x="470" y="380" width="260" height="170" fill="#ffffff" stroke="#bd1824" stroke-width="2.5"/>
+    <rect x="470" y="380" width="260" height="32" fill="#bd1824"/>
+    <text x="600" y="402" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">fact_evaluation</text>
+    <g font-size="12.5" fill="#1a1a1a">
+      <text x="482" y="432" font-weight="700" text-decoration="underline">evaluation_id</text>
+      <text x="482" y="450">resume_id  (FK → dim_resume)</text>
+      <text x="482" y="468">job_id  (FK → dim_job)</text>
+      <text x="482" y="486">model_name  (FK → dim_model)</text>
+      <text x="482" y="504">similarity_score</text>
+      <text x="482" y="522">rank_position</text>
+      <text x="482" y="540">test_condition_id  (FK)</text>
+    </g>
+  </g>
+
+  <text x="600" y="800" text-anchor="middle" font-size="12.5" fill="#5b5b5b">Grain: one row per resume evaluated against one job, by one scoring model, under one test condition.</text>
+  <text x="600" y="820" text-anchor="middle" font-size="12.5" fill="#5b5b5b">Current load: 300 resumes · 3 job postings · 2 models (TF-IDF, MiniLM) · 1 test condition (normal) · 1,800 fact rows.</text>
+</svg>

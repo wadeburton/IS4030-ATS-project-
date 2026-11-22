@@ -4,6 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ATS Screening Workbench</title>
   <link rel="stylesheet" href="/assets/style.css">
+  <script src="/assets/analytics.js" defer></script>
   <script src="/assets/workbench.js" defer></script>
 </head>
 <body>
@@ -11,39 +12,58 @@
     <span id="connection" class="pill">Connecting</span>
   </header>
   <main>
-    <section class="intro"><h1>Candidate search</h1></section>
-    <form id="scan-form" class="card controls">
-      <label>Target job<select id="job" required disabled><option>Loading jobs…</option></select></label>
-      <label>Scoring method<select id="model"><option value="both">Compare both models</option><option value="tfidf">TF-IDF · Keyword</option><option value="minilm">MiniLM · Semantic</option></select></label>
-      <button id="start" type="submit" disabled>Find Candidates <span aria-hidden="true">↗</span></button>
-      <button id="rescan" type="button" class="secondary" disabled>Re-run scoring</button>
-    </form>
-    <p id="status" role="status">Loading jobs…</p>
-    <section class="metrics" id="metrics" hidden>
-      <div class="card"><span>Resumes scored</span><strong id="count"></strong></div>
-      <div class="card"><span>Resumes skipped</span><strong id="skipped"></strong></div>
-      <div class="card"><span>Data quality</span><strong id="quality"></strong></div>
+    <section class="intro">
+      <div><p class="eyebrow">AI Resume Matching &amp; Screening Consistency</p><h1>Candidate search</h1></div>
+      <p>Score 300 resumes against a job posting two ways — keyword overlap (TF-IDF) and meaning-based
+        similarity (MiniLM) — then compare where the two methods agree, where they don't, and which results
+        need a human look.</p>
+    </section>
+    <section class="card status-bar">
+      <p id="status" role="status">Loading jobs…</p>
+      <div id="scan-progress" class="scan-progress" hidden></div>
+      <div class="metrics" id="metrics" hidden>
+        <div class="tile"><span>Resumes scored</span><strong id="count"></strong></div>
+        <div class="tile"><span>Resumes skipped</span><strong id="skipped"></strong></div>
+        <div class="tile"><span>Data quality</span><strong id="quality"></strong></div>
+      </div>
     </section>
     <section class="card results" aria-label="Scan results">
       <div class="tabs" role="group" aria-label="Results view">
-        <button type="button" class="tab chosen" data-view="ranking" aria-pressed="true">Top Candidates</button>
+        <button type="button" class="tab chosen" data-view="overview" aria-pressed="true">Overview</button>
+        <button type="button" class="tab" data-view="ranking" aria-pressed="false">Top Candidates</button>
         <button type="button" class="tab" data-view="charts" aria-pressed="false">Analytics</button>
+        <button type="button" class="tab" data-view="audits" aria-pressed="false">Consistency Tests</button>
         <button type="button" class="tab" data-view="checks" aria-pressed="false">Data Quality</button>
+        <button type="button" class="tab" data-view="agents" aria-pressed="false">Agents</button>
       </div>
-      <div id="ranking" class="pane">
+      <div id="overview" class="pane">
+        <div class="pane-header"><div><h2>Job overview</h2>
+          <p>Pick a job posting below, read what it's asking for, then scan the resume sample against it.</p></div>
+        </div>
+        <form id="scan-form" class="controls panel">
+          <label>Target job<select id="job" required disabled><option>Loading jobs…</option></select></label>
+          <label>Scoring method<select id="model"><option value="both">Compare both models</option><option value="tfidf">TF-IDF · Keyword</option><option value="minilm">MiniLM · Semantic</option></select></label>
+          <button id="start" type="submit" disabled>Find Candidates <span aria-hidden="true">↗</span></button>
+          <button id="rescan" type="button" class="secondary" disabled>Re-run scoring</button>
+        </form>
+        <div id="job-description" class="job-description panel">
+          <p class="empty">Choose a job above to see its posting.</p>
+        </div>
+      </div>
+      <div id="ranking" class="pane" hidden>
         <div class="pane-header"><div><h2 id="result-title">Top 20 matches</h2>
-          <p>Text similarity · 0 to 1</p></div>
+          <p>Text similarity · 0 to 1 · higher means the resume and job description overlap more.</p></div>
           <label id="method-wrap" hidden>Ranking by<select id="method"></select></label>
         </div>
         <p id="empty" class="empty">Choose a job to see its top matches.</p>
         <form id="search-form" class="search" hidden>
-          <label>Search scored candidates<input id="candidate-search" type="search" maxlength="80" placeholder="Candidate ID or skill, e.g. SQL"></label>
+          <label>Search scored candidates<input id="candidate-search" type="search" maxlength="80" placeholder="Candidate number or skill, e.g. 042 or SQL"></label>
           <button class="secondary" type="submit">Search</button>
           <button class="secondary" type="reset">Clear</button>
         </form>
         <p id="search-status" role="status"></p>
         <div class="table-scroll" id="table-wrap" hidden><table>
-          <thead><tr><th scope="col">Rank</th><th scope="col">Candidate ID</th><th scope="col">Match score</th></tr></thead>
+          <thead><tr><th scope="col">Rank</th><th scope="col">Candidate</th><th scope="col">Sample group</th><th scope="col">Match score</th></tr></thead>
           <tbody id="scores"></tbody>
         </table></div>
         <section class="method-note" id="why" hidden><h3>How this score works</h3><p id="method-note"></p></section>
@@ -54,44 +74,132 @@
           <label id="analytics-method-wrap" hidden>Scoring method<select id="analytics-method"></select></label>
         </div>
         <div id="analytics-body" hidden>
+          <div class="metrics" id="analytics-kpis"></div>
           <p class="analytics-summary" id="score-summary"></p>
+          <p class="analytics-footnote" id="score-range"></p>
           <div class="analytics-grid">
-            <section><h3>Score distribution</h3><div id="distribution"></div></section>
-            <section><h3>Resumes by dataset</h3><div id="source-mix"></div></section>
+            <section class="panel"><h3>Score distribution</h3>
+              <p>How similarity scores spread across this scoring method's whole sample, from unrelated (0) to a near-exact match (1).</p>
+              <div id="distribution" class="viz"></div>
+            </section>
+            <section class="panel"><h3>Resumes by dataset</h3>
+              <p>Which source dataset each scored resume came from, to check the sample isn't skewed toward one source.</p>
+              <div id="source-mix" class="viz"></div>
+              <div id="source-mix-legend" class="viz-legend" hidden></div>
+            </section>
           </div>
-          <h3>Results by sample group</h3>
-          <div class="table-scroll"><table>
-            <thead><tr><th scope="col">Group</th><th scope="col">Scored</th><th scope="col">Median score</th><th scope="col">In top 20</th></tr></thead>
-            <tbody id="group-results"></tbody>
-          </table></div>
-          <section class="comparison">
-            <h3>Top 20 overlap</h3><p id="overlap-summary"></p>
+          <section class="panel">
+            <h3>Results by sample group</h3>
+            <p>The study mixes tech/data resumes with an unrelated control group — this checks the scorer actually favors the right group.</p>
+            <div class="table-scroll"><table>
+              <thead><tr><th scope="col">Group</th><th scope="col">Scored</th><th scope="col">Median score</th><th scope="col">In top 20</th></tr></thead>
+              <tbody id="group-results"></tbody>
+            </table></div>
+          </section>
+          <section class="comparison panel">
+            <h3>Top 20 overlap</h3>
+            <p>When both models score the same job, this shows how much their top 20 picks agree — full agreement would mean the extra MiniLM pass changes nothing.</p>
+            <div id="overlap-chart" class="viz"></div>
+            <div id="overlap-legend" class="viz-legend" hidden></div>
+            <p id="overlap-summary"></p>
             <div id="rank-changes" hidden>
-              <h3>Biggest rank differences among either model’s top 20</h3>
+              <h3>Biggest rank differences among either model's top 20</h3>
+              <p>Candidates whose keyword rank and semantic rank disagree most — worth a manual look.</p>
               <div class="table-scroll"><table>
-                <thead><tr><th scope="col">Candidate ID</th><th scope="col">TF-IDF rank</th><th scope="col">MiniLM rank</th><th scope="col">Places apart</th></tr></thead>
+                <thead><tr><th scope="col">Candidate</th><th scope="col">TF-IDF rank</th><th scope="col">MiniLM rank</th><th scope="col">Places apart</th></tr></thead>
                 <tbody id="rank-differences"></tbody>
               </table></div>
             </div>
           </section>
+          <section class="panel">
+            <h3>Do the two models agree? — rank agreement surface</h3>
+            <p>Every resume is placed by where it ranks under TF-IDF (one floor axis) and under MiniLM (the other),
+              from worst to best. Ranks are used instead of raw scores because the two models score on different
+              scales — TF-IDF scores sit near 0 for almost everyone, so raw scores can't be compared directly.
+              The floor is a 12×12 grid; height and color show how many resumes fall in each cell.</p>
+            <p><strong>How to read it:</strong> a ridge running corner to corner (worst–worst to best–best) means the
+              models rank resumes the same way. Bumps away from that diagonal are resumes one model likes and the
+              other doesn't — the cases worth a human look. Flat, evenly spread terrain means little agreement.
+              Drag to rotate.</p>
+            <div id="score-space" class="score-space"><div id="score-space-scene" class="score-space-scene"></div></div>
+            <div id="score-space-legend" class="viz-legend" hidden></div>
+          </section>
           <p class="analytics-footnote">Scores describe text similarity within this sample. Rank overlap measures agreement between the models.</p>
         </div>
       </div>
+      <div id="audits" class="pane" hidden>
+        <div class="pane-header">
+          <div><h2>Screening consistency tests</h2><p id="audit-context">Two controlled experiments: change one thing about a resume, keep the scoring fixed, and see whether its rank moves.</p></div>
+          <label>Show results for<select id="audit-scope"><option value="job">Selected job</option><option value="all">All jobs combined</option></select></label>
+        </div>
+        <p id="audit-status" class="viz-empty" role="status">Loading test results…</p>
+        <div id="audit-body" hidden>
+          <section class="panel">
+            <h3>Test 1 · Synthetic name swap</h3>
+            <p>Every resume starts with the same made-up reference name (Emily Walsh) as its first line. One resume at
+              a time, that name is swapped for five other made-up names and the resume is rescored. The qualifications
+              are word-for-word identical, so a fair screener should give every copy the same score and rank.</p>
+            <div class="metrics audit-kpis" id="name-kpis"></div>
+            <p class="analytics-summary" id="name-verdict"></p>
+            <div class="analytics-grid">
+              <div><h3>MiniLM: resumes that moved 5+ rank places, by name</h3>
+                <p>How often swapping Emily Walsh for this name moved a resume 5 or more places. Shorter is better; even bars mean no name stands out.</p>
+                <div id="name-chart" class="viz"></div></div>
+              <div><h3>Average score change by name</h3>
+                <p>Score with this name minus score as Emily Walsh (0–1 scale). Negative means this name scored lower.</p>
+                <div class="table-scroll"><table>
+                  <thead><tr><th scope="col">Synthetic name</th><th scope="col">TF-IDF</th><th scope="col">MiniLM</th></tr></thead>
+                  <tbody id="name-table"></tbody>
+                </table></div></div>
+            </div>
+          </section>
+          <section class="panel">
+            <h3>Test 2 · Keyword stuffing</h3>
+            <p>Each out-of-field control resume (nursing, sales) gets the posting's 12 most distinctive words pasted
+              onto the end as a fake "skills" line — nothing else changes. A screener that is hard to game should
+              keep these resumes out of the top 20.</p>
+            <div class="metrics audit-kpis" id="stuffing-kpis"></div>
+            <p class="analytics-summary caution" id="stuffing-verdict"></p>
+            <h3>Control resumes in the top 20, before and after stuffing</h3>
+            <div id="stuffing-chart" class="viz"></div>
+          </section>
+          <p class="analytics-footnote">How the tests are run: both models are frozen — TF-IDF is fitted once on the unchanged
+            resumes and never refitted — and each changed resume is ranked against the other, unchanged resumes. Resumes are
+            shortened slightly first so the added text is never cut off. Names are synthetic. These results describe this
+            sample and these two methods; they are not evidence of demographic discrimination or of real hiring outcomes.</p>
+        </div>
+      </div>
       <div id="checks" class="pane" hidden>
-        <div class="pane-header"><div><h2>Data quality</h2><p>Trim extra spaces in prepared text and check for missing fields and duplicate IDs.</p></div>
+        <div class="pane-header"><div><h2>Data quality</h2><p>Every scan runs these checks before any score is saved; a failed blocking check stops the run. Fix Data trims stray spaces in the prepared text and reports missing fields and duplicate IDs.</p></div>
           <button id="fix-data" class="secondary" type="button" disabled>Fix Data</button>
         </div>
         <p id="fix-status" role="status"></p><ul id="fix-summary"></ul>
-        <p id="no-checks">Scan checks appear after you load rankings.</p><ul id="check-list"></ul>
+        <p id="no-checks">Scan checks appear after you load rankings.</p>
+        <p id="check-summary" class="check-summary" hidden></p>
+        <ul id="check-list"></ul>
+      </div>
+      <div id="agents" class="pane" hidden>
+        <div class="pane-header"><div><h2>Agents</h2>
+          <p>The two automated jobs behind this dashboard. Each only reads and writes the study's own tables — no other data is touched.</p></div>
+        </div>
+        <div class="agents-grid" id="agents-grid"><p class="viz-empty">Loading agents…</p></div>
       </div>
     </section>
     <dialog id="candidate-detail">
-      <div class="pane-header"><h2 id="candidate-title">Candidate details</h2>
+      <div class="pane-header">
+        <div><h2 id="candidate-title">Candidate details</h2><div id="candidate-source" class="chips"></div></div>
         <form method="dialog"><button class="secondary">Close</button></form>
       </div>
-      <p id="candidate-source"></p><ul id="candidate-scores"></ul>
-      <h3>Skills mentioned in both texts</h3><p id="candidate-evidence" role="status"></p>
-      <h3>Job skills without a text match</h3><p id="candidate-gap"></p>
+      <h3>How each model ranked this candidate</h3>
+      <div id="candidate-scores" class="score-cards"></div>
+      <p id="candidate-agreement" class="candidate-agreement" hidden></p>
+      <h3>Skills found in both the job and the resume</h3>
+      <p id="evidence-caption"></p>
+      <div id="candidate-evidence" class="chips" role="status"></div>
+      <h3>Job skills not found in the resume</h3>
+      <p id="gap-caption"></p>
+      <div id="candidate-gap" class="chips"></div>
+      <p id="candidate-id" class="candidate-id"></p>
     </dialog>
   </main>
 </body>
