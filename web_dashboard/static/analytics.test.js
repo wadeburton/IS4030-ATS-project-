@@ -25,6 +25,20 @@ test("binScores sorts scores into five fixed buckets, with 1.0 landing in the to
   ]);
 });
 
+test("binScores fits its buckets to a narrow score range so low-scoring methods still show a spread", () => {
+  const rows = [0.031, 0.05, 0.149].map((similarity_score) => ({similarity_score}));
+  assert.deepEqual(binScores(rows), [
+    {label: "2–<4%", count: 1},
+    {label: "4–<6%", count: 1},
+    {label: "6–<8%", count: 0},
+    {label: "8–<10%", count: 0},
+    {label: "10–<12%", count: 0},
+    {label: "12–<14%", count: 0},
+    {label: "14–<16%", count: 1},
+  ]);
+  assert.deepEqual(binScores([]), []);
+});
+
 test("sourceMix counts resumes per dataset, mapping known codes to labels and sorting by count", () => {
   const rows = [
     ...Array(3).fill({source_dataset: "structured"}),

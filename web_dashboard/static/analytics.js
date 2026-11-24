@@ -1,7 +1,6 @@
 "use strict";
 const SOURCE_LABELS = {structured: "Resume dataset", recruitment: "Recruitment dataset"};
 const GROUP_LABELS = {tech_data_proxy: "Tech/data", control: "Control"};
-const BIN_LABELS = ["0–<20%", "20–<40%", "40–<60%", "60–<80%", "80–100%"];
 
 // Scores are stored 0–1 but shown as a percent match; score changes are percentage points.
 const asPercent = (score) => `${(Number(score) * 100).toFixed(1)}%`;
@@ -13,10 +12,23 @@ function medianScore(rows) {
   return scores.length % 2 ? scores[middle] : (scores[middle - 1] + scores[middle]) / 2;
 }
 
+// Buckets are fitted to the scores' own range: with fixed 20-point buckets every TF-IDF
+// score (all under 20%) landed in one bar, so the chart looked identical for every posting.
 function binScores(rows) {
-  const counts = [0, 0, 0, 0, 0];
-  for (const row of rows) counts[Math.min(4, Math.floor(Number(row.similarity_score) * 5))]++;
-  return BIN_LABELS.map((label, i) => ({label, count: counts[i]}));
+  const percents = rows.map((row) => Number(row.similarity_score) * 100);
+  if (!percents.length) return [];
+  const low = Math.min(...percents);
+  const high = Math.max(...percents);
+  const step = [1, 2, 5, 10, 20].find((size) => Math.floor(high / size) - Math.floor(low / size) < 8) || 20;
+  const first = Math.floor(low / step);
+  const last = Math.min(Math.floor(high / step), Math.ceil(100 / step) - 1);
+  const bins = [];
+  for (let i = first; i <= last; i++) {
+    const end = (i + 1) * step;
+    bins.push({label: end >= 100 ? `${i * step}–100%` : `${i * step}–<${end}%`, count: 0});
+  }
+  for (const percent of percents) bins[Math.min(last, Math.floor(percent / step)) - first].count++;
+  return bins;
 }
 
 function countBy(rows, labelOf) {

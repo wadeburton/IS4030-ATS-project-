@@ -917,7 +917,10 @@ async function initialize() {
       byId("start").disabled = byId("rescan").disabled = !job.value;
       renderJobDescription(jobsById.get(job.value));
       if (!byId("audits").hidden) loadAudits();
+      // Reload saved results right away so every chart follows the selected posting.
+      loadMatches(false, true);
     });
+    byId("model").addEventListener("change", () => { if (job.value) loadMatches(false, true); });
     status(data.jobs.length ? "" : "No prepared study jobs are available.");
   } catch (error) {
     byId("connection").textContent = "Connection unavailable";
@@ -925,7 +928,7 @@ async function initialize() {
   }
 }
 
-async function loadMatches(fresh) {
+async function loadMatches(fresh, stayOnView) {
   const job = byId("job");
   const model = byId("model");
   const start = byId("start");
@@ -940,7 +943,7 @@ async function loadMatches(fresh) {
   byId("empty").textContent = fresh ? "Waiting for the scan." : "Loading saved rankings.";
   renderRanking();
   renderChecks([]);
-  showView("ranking");
+  if (!stayOnView) showView("ranking");
   status(fresh ? "Starting scan…" : "Loading saved rankings…", false, true);
   try {
     if (fresh) {
