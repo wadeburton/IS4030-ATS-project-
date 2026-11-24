@@ -33,7 +33,7 @@ Run one cell at a time when learning. Keep screenshots of loading results and ch
 
 ## Team handoffs
 
-- **Data Engineer:** inspect the three Bronze tables, review source quality, and build cleaned inputs in Silver. Select 2 or 3 Data Analyst / Business Intelligence jobs and 300 to 500 resumes with the agreed 70/30 relevant/control split. Deduplicate before sampling. Do not put demographic data or applicant names into normal model inputs.
+- **Data Engineer:** inspect the three Bronze tables, review source quality, and build cleaned inputs in Silver. Select 2 to 20 Data Analyst / Business Intelligence jobs (the study now uses 20) and 300 to 500 resumes with the agreed 70/30 relevant/control split. Deduplicate before sampling. Do not put demographic data or applicant names into normal model inputs.
 - **BI Data Architect:** review the starter star schema, draw the ERD, and define loading and key-validation rules. Required fact fields reject null values. This workspace rejected SQL CHECK constraints, so score bounds, positive ranks, uniqueness, and dimension relationships require explicit validation queries before results are accepted. The starter schema represents one frozen study run; agree on a run key or separate storage before retaining multiple runs.
 - **Project Manager / AI and Testing Lead:** build and test the keyword and MiniLM scoring pipeline, perform the controlled name audit, and export the agreed fact columns. No AI scoring has been run as part of workspace setup.
 - **Business Strategist:** develop the independent 1–5 human-review rubric, coordinate review, and write the business case and research. Synthetic source records and labels cannot establish real hiring discrimination.

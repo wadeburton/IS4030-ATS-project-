@@ -163,6 +163,15 @@ class SavedRunCacheTests(unittest.TestCase):
         database.saved(run_id="run-1")
         self.assertEqual(sum("ats_run_scores" in s for s in database.statements), 2)
 
+    def test_preload_fetches_every_jobs_saved_scores_ahead_of_the_first_click(self):
+        database = self.make("succeeded")
+        database.jobs = lambda: [{"job_id": "j"}]
+        database.preload()
+        before = len(database.statements)
+        database.saved(job_id="j", model="both")
+        self.assertEqual([s for s in database.statements[before:] if "ats_run_scores" in s], [])
+        self.assertTrue(any("ats_audit_results" in s for s in database.statements[:before]))
+
     def test_audit_aggregates_are_fetched_once_per_scope(self):
         database = self.make("succeeded")
         database.audits("j"), database.audits("j"), database.audits()

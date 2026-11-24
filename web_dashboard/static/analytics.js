@@ -1,7 +1,11 @@
 "use strict";
 const SOURCE_LABELS = {structured: "Resume dataset", recruitment: "Recruitment dataset"};
 const GROUP_LABELS = {tech_data_proxy: "Tech/data", control: "Control"};
-const BIN_LABELS = ["0–<0.2", "0.2–<0.4", "0.4–<0.6", "0.6–<0.8", "0.8–1.0"];
+const BIN_LABELS = ["0–<20%", "20–<40%", "40–<60%", "60–<80%", "80–100%"];
+
+// Scores are stored 0–1 but shown as a percent match; score changes are percentage points.
+const asPercent = (score) => `${(Number(score) * 100).toFixed(1)}%`;
+const asPoints = (change) => `${(Number(change) * 100).toFixed(1)} points`;
 
 function medianScore(rows) {
   const scores = rows.map((row) => Number(row.similarity_score)).sort((a, b) => a - b);
@@ -190,8 +194,8 @@ function nameSwapVerdict(test) {
   const {tfidf, minilm} = test;
   const keyword = tfidf.maxChange < 0.0005
     ? "Swapping the name never changed a TF-IDF score: the keyword model only counts words it learned from the resumes' qualifications and the posting, so names are ignored."
-    : `Swapping the name changed TF-IDF scores by at most ${tfidf.maxChange.toFixed(3)}.`;
-  return `${keyword} MiniLM reads the whole text, so its scores moved by up to ${minilm.maxChange.toFixed(3)} and `
+    : `Swapping the name changed TF-IDF scores by at most ${asPoints(tfidf.maxChange)}.`;
+  return `${keyword} MiniLM reads the whole text, so its scores moved by up to ${asPoints(minilm.maxChange)} and `
     + `${minilm.moved5.toLocaleString()} of ${minilm.pairs.toLocaleString()} name/resume pairs (${percent(minilm.moved5, minilm.pairs)}%) `
     + "shifted 5 or more rank places with identical qualifications.";
 }
@@ -206,5 +210,5 @@ function stuffingVerdict(test) {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = {medianScore, binScores, sourceMix, groupBreakdown, overlapSummary, demoEvidence, sourceLabel, rankGapNote, rankFractions, densityGrid, candidateLabels, rankCorrelation, postingPoints, analyticsVerdict, auditSummary, nameSwapVerdict, stuffingVerdict};
+  module.exports = {asPercent, asPoints, medianScore, binScores, sourceMix, groupBreakdown, overlapSummary, demoEvidence, sourceLabel, rankGapNote, rankFractions, densityGrid, candidateLabels, rankCorrelation, postingPoints, analyticsVerdict, auditSummary, nameSwapVerdict, stuffingVerdict};
 }

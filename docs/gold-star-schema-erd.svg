@@ -87,5 +87,5 @@
   </g>
 
   <text x="600" y="800" text-anchor="middle" font-size="12.5" fill="#5b5b5b">Grain: one row per resume evaluated against one job, by one scoring model, under one test condition.</text>
-  <text x="600" y="820" text-anchor="middle" font-size="12.5" fill="#5b5b5b">Current load: 300 resumes · 3 job postings · 2 models (TF-IDF, MiniLM) · 1 test condition (normal) · 1,800 fact rows.</text>
+  <text x="600" y="820" text-anchor="middle" font-size="12.5" fill="#5b5b5b">Current load: 300 resumes · 20 job postings · 2 models (TF-IDF, MiniLM) · 1 test condition (normal) · 12,000 fact rows.</text>
 </svg>

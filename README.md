@@ -121,6 +121,19 @@ dimensions. Note for reproducing this: any job text added by hand must stay at o
 blocks the *entire* scoring run if any job or resume exceeds that, even for jobs other than
 the one you're scoring.
 
+**Screening consistency tests (2026-11-19):** `notebooks/10_run_audits.py` runs two paired
+experiments across all 20 postings with both scoring methods held fixed and saves them to the
+companion table `workspace.is4030_ops.ats_audit_results`; the standalone dashboard shows them on
+its Consistency Tests tab. *Name swap:* each resume's synthetic reference name is swapped for five
+other synthetic names with identical qualifications. TF-IDF scores never changed (0 of 30,000
+swaps); MiniLM scores moved by up to 0.146 and 26,717 of 30,000 swaps (89%) shifted a resume five
+or more rank places. *Keyword stuffing:* each of the 90 control resumes gets the posting's 12 most
+distinctive words appended. Control resumes in the top 20 rose from 20 to 1,800 of 1,800 under
+TF-IDF and from 4 to 197 of 1,800 under MiniLM. Resumes are shortened to 800 characters for these
+tests so added text is never truncated. Names are synthetic; these results are not evidence of
+demographic discrimination or of real hiring outcomes. The earlier preview paragraph above predates
+these tests. Independent human ratings are still not done.
+
 The tables for this run are listed in
 `.build-databricks/deployed-preview-tables.json` on the project owner's computer;
 that file and the source records are intentionally excluded from GitHub. The

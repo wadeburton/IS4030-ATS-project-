@@ -2,6 +2,15 @@
 
 Run this dashboard in a regular browser outside Databricks. The demo shows how to pick a job, launch a scan, and review the top 20 anonymous matches. Demo scores and checks are synthetic. In live mode Databricks runs the models and supplies the saved scores and quality checks.
 
+## Quick start for teammates (Windows)
+
+1. Download the project from GitHub (**Code > Download ZIP** on the `codex/ats-control-dashboard` branch) and extract it.
+2. Double-click **Start-Dashboard.bat** in the extracted folder.
+
+The launcher checks for Python and the Databricks CLI and offers to install either one if it is missing. It installs the dashboard packages into a local `.venv` folder, opens a browser so you can sign in to Databricks with your own account, and then opens the dashboard at http://127.0.0.1:8051. The first run takes a few minutes; later runs skip straight to the dashboard. Keep the launcher window open while you use the dashboard and close it to stop.
+
+You need an account in the IS4030 Databricks workspace. No password or token is stored in the project.
+
 ## Launch the demo
 
 From the repository root:

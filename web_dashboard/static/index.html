@@ -34,6 +34,7 @@
         <button type="button" class="tab" data-view="charts" aria-pressed="false">Analytics</button>
         <button type="button" class="tab" data-view="audits" aria-pressed="false">Consistency Tests</button>
         <button type="button" class="tab" data-view="checks" aria-pressed="false">Data Quality</button>
+        <button type="button" class="tab" data-view="explain" aria-pressed="false">How It Works</button>
         <button type="button" class="tab" data-view="agents" aria-pressed="false">Agents</button>
       </div>
       <div id="overview" class="pane">
@@ -52,7 +53,7 @@
       </div>
       <div id="ranking" class="pane" hidden>
         <div class="pane-header"><div><h2 id="result-title">Top 20 matches</h2>
-          <p>Text similarity · 0 to 1 · higher means the resume and job description overlap more.</p></div>
+          <p>Text similarity shown as a percent match · 0% to 100% · higher means the resume and job description overlap more.</p></div>
           <label id="method-wrap" hidden>Ranking by<select id="method"></select></label>
         </div>
         <p id="empty" class="empty">Choose a job to see its top matches.</p>
@@ -79,7 +80,7 @@
           <p class="analytics-footnote" id="score-range"></p>
           <div class="analytics-grid">
             <section class="panel"><h3>Score distribution</h3>
-              <p>How similarity scores spread across this scoring method's whole sample, from unrelated (0) to a near-exact match (1).</p>
+              <p>How similarity scores spread across this scoring method's whole sample, from unrelated (0%) to a near-exact match (100%).</p>
               <div id="distribution" class="viz"></div>
             </section>
             <section class="panel"><h3>Resumes by dataset</h3>
@@ -146,7 +147,7 @@
                 <p>How often swapping Emily Walsh for this name moved a resume 5 or more places. Shorter is better; even bars mean no name stands out.</p>
                 <div id="name-chart" class="viz"></div></div>
               <div><h3>Average score change by name</h3>
-                <p>Score with this name minus score as Emily Walsh (0–1 scale). Negative means this name scored lower.</p>
+                <p>Score with this name minus score as Emily Walsh, in percentage points. Negative means this name scored lower.</p>
                 <div class="table-scroll"><table>
                   <thead><tr><th scope="col">Synthetic name</th><th scope="col">TF-IDF</th><th scope="col">MiniLM</th></tr></thead>
                   <tbody id="name-table"></tbody>
@@ -177,6 +178,81 @@
         <p id="no-checks">Scan checks appear after you load rankings.</p>
         <p id="check-summary" class="check-summary" hidden></p>
         <ul id="check-list"></ul>
+      </div>
+      <div id="explain" class="pane" hidden>
+        <div class="pane-header"><div><h2>How it works</h2>
+          <p>Both scoring methods answer the same question — how similar is this resume's text to this job posting's text? — but they read the text in opposite ways.</p></div></div>
+        <div class="analytics-grid">
+          <section class="panel explain-tfidf"><h3>TF-IDF: counts shared words</h3>
+            <p>TF-IDF (term frequency–inverse document frequency) treats each text as a bag of words. A word that appears in both the resume and the posting adds to the score, and a word that is rare across the 300 resumes (like "tableau") counts for much more than a common one (like "team").</p>
+            <p>It has no idea what any word means. "Built reports in Power BI" and "created dashboards in Tableau" share almost no words, so they barely match.</p></section>
+          <section class="panel explain-minilm"><h3>MiniLM: compares meaning</h3>
+            <p>MiniLM (all-MiniLM-L6-v2) is a small neural network that was already trained on more than a billion sentence pairs. It reads the words in context and turns each text into 384 numbers that summarise what the text is about. Texts about similar things get similar numbers.</p>
+            <p>It can match related experience written in different words, but nobody can point to the exact words that produced a score.</p></section>
+        </div>
+        <section class="panel"><h3>The two scoring paths, step by step</h3>
+          <p>Both paths start with identical text and end with the same comparison. Only the middle differs.</p>
+          <h4 class="lane-title tfidf">TF-IDF path</h4>
+          <div class="flow">
+            <div class="step"><b>Resume + posting</b><small>the same cleaned text both methods get</small></div><span class="arrow">split</span>
+            <div class="step"><b>Words and word pairs</b><small>"sql", "data analyst"</small></div><span class="arrow">weigh</span>
+            <div class="step"><b>Rare words weigh more</b><small>learned from the 300 resumes + this posting</small></div><span class="arrow">list</span>
+            <div class="step"><b>One weight per word</b><small>thousands of slots, mostly zero</small></div><span class="arrow">compare</span>
+            <div class="step"><b>Cosine similarity</b><small>0% to 100% match</small></div>
+          </div>
+          <h4 class="lane-title minilm">MiniLM path</h4>
+          <div class="flow">
+            <div class="step"><b>Resume + posting</b><small>the same cleaned text both methods get</small></div><span class="arrow">split</span>
+            <div class="step"><b>Word pieces</b><small>up to 256 per text</small></div><span class="arrow">read</span>
+            <div class="step"><b>6-layer transformer</b><small>pretrained, never retrained by us</small></div><span class="arrow">summarise</span>
+            <div class="step"><b>384 numbers</b><small>a summary of meaning</small></div><span class="arrow">compare</span>
+            <div class="step"><b>Cosine similarity</b><small>0% to 100% match</small></div>
+          </div>
+          <p class="analytics-footnote">Cosine similarity measures how closely two lists of numbers point in the same direction.</p>
+        </section>
+        <section class="panel"><h3>Side by side</h3>
+          <div class="table-scroll"><table class="explain-table">
+            <thead><tr><th scope="col"></th><th scope="col">TF-IDF (keyword)</th><th scope="col">MiniLM (semantic)</th></tr></thead>
+            <tbody>
+              <tr><td>What it looks at</td><td>Exact words and two-word phrases</td><td>Meaning of the whole text in context</td></tr>
+              <tr><td>Where its knowledge comes from</td><td>Only the 300 resumes and the one posting</td><td>Pretraining on over a billion sentence pairs</td></tr>
+              <tr><td>Can you explain a score?</td><td>Yes, word by word</td><td>No, only the final number</td></tr>
+              <tr><td>Top score across the 20 postings</td><td>3.9% to 15.0%</td><td>30.6% to 71.1%</td></tr>
+              <tr><td>Typical tech/data resume outscores typical control resume</td><td>8 of 20 postings</td><td>20 of 20 postings</td></tr>
+              <tr><td>Fooled by pasted keywords?</td><td>Every time (1,800 of 1,800 tests)</td><td>Sometimes (197 of 1,800 tests)</td></tr>
+              <tr><td>Affected by the applicant's name?</td><td>Never (0 of 30,000 swaps)</td><td>Yes (89% of swaps moved 5+ places)</td></tr>
+            </tbody>
+          </table></div>
+          <p class="analytics-summary caution">Why the percentages look low: a score is text similarity, not a grade or a hiring chance. The two methods also sit on different scales, so compare each resume's rank between the methods, not its percent.</p>
+        </section>
+        <section class="panel"><h3>Where the data comes from</h3>
+          <p>Everything lives in Databricks in three layers: Bronze holds the raw files, Silver holds the cleaned study inputs, Gold holds the star schema. This dashboard is a separate web app that only reads from Databricks.</p>
+          <div class="flow wide">
+            <div class="step"><b>3 raw Kaggle files</b><small>resumes (9,544 rows) · LinkedIn data jobs (1,048) · recruitment applicants (10,000)</small></div><span class="arrow">load as-is</span>
+            <div class="step"><b>Bronze</b><small>raw tables, file hashes recorded</small></div><span class="arrow">clean + sample</span>
+            <div class="step"><b>Silver</b><small>300 resumes (210 tech/data, 90 nursing/sales controls) · 20 postings</small></div><span class="arrow">score</span>
+            <div class="step"><b>Scoring job</b><small>TF-IDF + MiniLM, with quality checks that block a bad run</small></div><span class="arrow">save</span>
+            <div class="step"><b>Run tables</b><small>scores, run log, quality checks, consistency-test results</small></div><span class="arrow">load</span>
+            <div class="step"><b>Gold star schema</b><small>1 fact + 4 dimensions · 12,000 rows</small></div><span class="arrow">SQL read</span>
+            <div class="step"><b>This dashboard</b><small>resume text never reaches the browser</small></div>
+          </div>
+          <p class="analytics-footnote">Cleaning removes contact details and applicant names, drops unusable rows and duplicates, and caps every text at 1,000 characters so both methods read exactly the same input.</p>
+          <div class="star">
+            <div class="step"><b>dim_resume</b><small>resume_id · source_dataset · domain_group · qualification_text</small></div>
+            <div class="step fact"><b>fact_evaluation</b><small>one row = one resume scored against one posting by one method under one test condition<br>similarity_score · rank_position · keys to all four dimensions</small></div>
+            <div class="step"><b>dim_job</b><small>job_id · title · company · job_family · requirements_text</small></div>
+            <div class="step"><b>dim_model</b><small>model_name · method · model_version</small></div>
+            <div class="step"><b>dim_test_condition</b><small>test_condition_id · description</small></div>
+          </div>
+        </section>
+        <section class="panel"><h3>Limits to keep in mind</h3>
+          <ul class="explain-limits">
+            <li>Scores measure how similar two texts are. They are not hiring probabilities and not accuracy.</li>
+            <li>No human rated any resume, so the study cannot name a "correct" ranking.</li>
+            <li>The 300 resumes and 20 postings are a sample of public Kaggle data in one job family (data analyst and BI roles).</li>
+            <li>Names in the name test are made up. The test shows instability, not bias against a group.</li>
+          </ul>
+        </section>
       </div>
       <div id="agents" class="pane" hidden>
         <div class="pane-header"><div><h2>Agents</h2>

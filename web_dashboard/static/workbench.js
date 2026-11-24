@@ -75,7 +75,7 @@ function renderRanking() {
     cell.className = "score";
     tr.insertCell().append(cell);
     const number = document.createElement("span");
-    number.textContent = score.toFixed(3);
+    number.textContent = asPercent(score);
     const track = document.createElement("span");
     track.className = "track";
     track.setAttribute("aria-hidden", "true");
@@ -304,7 +304,7 @@ function renderCharts(rows) {
   const agreement = rankCorrelation(result.scores);
   const techTop = rows.filter((row) => row.rank_position <= 20 && row.domain_group === "tech_data_proxy").length;
   const kpis = [
-    ["Median similarity", medianScore(rows).toFixed(3), `${methods[method]} · all ${rows.length} resumes`],
+    ["Median match", asPercent(medianScore(rows)), `${methods[method]} · all ${rows.length} resumes`],
     ["Top 20 from tech/data", `${techTop} of 20`, "Control resumes should not reach the top"],
     ["Picked by both models", overlapNow.comparable ? `${overlapNow.shared} of 20` : "—", "Overlap of the two top-20 lists"],
     ["Rank agreement", agreement == null ? "—" : agreement.toFixed(2), "Spearman: 1 = same order, 0 = unrelated, −1 = opposite"],
@@ -313,7 +313,7 @@ function renderCharts(rows) {
   const controlTop = Math.min(20, rows.length) - techTop;
   summary.textContent = analyticsVerdict({agreement, shared: overlapNow.shared, controlTop});
   summary.classList.toggle("caution", controlTop > 0 || (agreement != null && agreement < 0.2));
-  byId("score-range").textContent = `${methods[method]} scores for this job run from ${Math.min(...scores).toFixed(3)} to ${Math.max(...scores).toFixed(3)}. Scores measure text similarity, not hiring probability, and the two methods use different scales, so compare ranks rather than raw scores. ${skipped} resumes skipped.`;
+  byId("score-range").textContent = `${methods[method]} scores for this job run from ${asPercent(Math.min(...scores))} to ${asPercent(Math.max(...scores))} match. Scores measure text similarity, not hiring probability, and the two methods use different scales, so compare ranks rather than raw scores. ${skipped} resumes skipped.`;
   renderTiles(byId("analytics-kpis"), kpis);
   renderMagnitudeChart(byId("distribution"), binScores(rows), rows.length);
   renderDonut(byId("source-mix"), byId("source-mix-legend"),
@@ -322,7 +322,7 @@ function renderCharts(rows) {
   const breakdown = byId("group-results");
   breakdown.replaceChildren();
   for (const group of groupBreakdown(rows)) {
-    addRow(breakdown, [group.label, `${group.count} (${group.sharePercent}%)`, group.medianScore.toFixed(3), group.topCount]);
+    addRow(breakdown, [group.label, `${group.count} (${group.sharePercent}%)`, asPercent(group.medianScore), group.topCount]);
   }
   renderOverlap();
   renderScoreSpace();
@@ -550,7 +550,7 @@ function scoreCard(score) {
   track.append(fill);
   const raw = document.createElement("span");
   raw.className = "score-card-raw";
-  raw.textContent = `similarity score ${Number(score.similarity_score).toFixed(3)}`;
+  raw.textContent = `${asPercent(score.similarity_score)} match`;
   card.append(model, rank, of, track, raw);
   return card;
 }
@@ -637,7 +637,7 @@ byId("fix-data").addEventListener("click", async () => {
 
 const CHECK_NAMES = {
   complete_score_count: "Every resume received a score", expected_score_count: "No extra score rows",
-  positive_ranks: "Ranks are valid", scores_between_zero_and_one: "Scores are between 0 and 1",
+  positive_ranks: "Ranks are valid", scores_between_zero_and_one: "Scores are between 0% and 100%",
   selected_job_exists_once: "Selected job is unique", selected_job_only: "Scores belong to the selected job",
   selected_model_only: "Scores belong to the selected model", study_domain_ratio: "70/30 sample mix holds",
   study_job_count: "Job count is within study range", study_resume_count: "Resume count is within study range",
@@ -700,8 +700,8 @@ function renderAudits() {
     + ` · ${names.minilm.pairs.toLocaleString()} name-swap comparisons and ${stuffing.minilm.pairs.toLocaleString()} keyword-stuffing comparisons per model.`;
   const share = (part, whole) => `${part.toLocaleString()} (${whole ? Math.round(100 * part / whole) : 0}%)`;
   renderTiles(byId("name-kpis"), [
-    ["TF-IDF · largest score change", names.tfidf.maxChange.toFixed(3), "0 means a name can never matter"],
-    ["MiniLM · largest score change", names.minilm.maxChange.toFixed(3), "On the 0–1 similarity scale"],
+    ["TF-IDF · largest score change", asPoints(names.tfidf.maxChange), "0 means a name can never matter"],
+    ["MiniLM · largest score change", asPoints(names.minilm.maxChange), "Percentage points on the 0–100% match scale"],
     ["MiniLM · moved 5+ places", share(names.minilm.moved5, names.minilm.pairs), `Biggest single move: ${names.minilm.maxRankMove} places`],
     ["MiniLM · top-20 changes", names.minilm.top20Changed.toLocaleString(), "Times a name moved a resume into or out of the top 20"],
   ]);
@@ -710,7 +710,7 @@ function renderAudits() {
   const perName = names.minilm.conditions;
   renderMagnitudeChart(byId("name-chart"), perName.map((c) => ({label: c.label, count: c.moved5})),
     Math.max(1, ...perName.map((c) => c.moved5)) * 1.15);
-  const signed = (value) => (value > 0 ? "+" : value < 0 ? "−" : "") + Math.abs(value).toFixed(4);
+  const signed = (value) => (value > 0 ? "+" : value < 0 ? "−" : "") + (Math.abs(value) * 100).toFixed(2) + " pts";
   const keywordByName = new Map(names.tfidf.conditions.map((c) => [c.label, c.meanChange]));
   byId("name-table").replaceChildren();
   for (const c of perName) addRow(byId("name-table"), [c.label, signed(keywordByName.get(c.label) ?? 0), signed(c.meanChange)]);

@@ -17,11 +17,11 @@ test("binScores sorts scores into five fixed buckets, with 1.0 landing in the to
   const rows = [0, 0.19999, 0.2, 0.39999, 0.4, 0.59999, 0.6, 0.79999, 0.8, 1.0]
     .map((similarity_score) => ({similarity_score}));
   assert.deepEqual(binScores(rows), [
-    {label: "0–<0.2", count: 2},
-    {label: "0.2–<0.4", count: 2},
-    {label: "0.4–<0.6", count: 2},
-    {label: "0.6–<0.8", count: 2},
-    {label: "0.8–1.0", count: 2},
+    {label: "0–<20%", count: 2},
+    {label: "20–<40%", count: 2},
+    {label: "40–<60%", count: 2},
+    {label: "60–<80%", count: 2},
+    {label: "80–100%", count: 2},
   ]);
 });
 
@@ -198,7 +198,7 @@ test("nameSwapVerdict says the keyword model ignores names and quantifies the se
     auditRow("name_swap", "minilm", "Emily Walsh", {moved_5: 75, max_change: 0.0412}),
   ]).name_swap);
   assert.match(text, /never changed a TF-IDF score/);
-  assert.match(text, /up to 0\.041 and 75 of 300 name\/resume pairs \(25%\)/);
+  assert.match(text, /up to 4\.1 points and 75 of 300 name\/resume pairs \(25%\)/);
   assert.equal(nameSwapVerdict(undefined), "");
 });
 
@@ -215,4 +215,11 @@ test("stuffingVerdict names the model that is easier to game", () => {
 test("stuffingVerdict does not pick a loser when both models are fooled equally", () => {
   const row = (model) => auditRow("keyword_stuffing", model, "stuffed", {pairs: 90, top20_before: 0, top20_after: 90});
   assert.match(stuffingVerdict(auditSummary([row("tfidf"), row("minilm")]).keyword_stuffing), /Both models were equally easy to game here\.$/);
+});
+
+test("scores stored 0-1 are shown as a percent match and changes as percentage points", () => {
+  const {asPercent, asPoints} = require("./analytics.js");
+  assert.equal(asPercent(0.75), "75.0%");
+  assert.equal(asPercent("0.1234"), "12.3%");
+  assert.equal(asPoints(0.146), "14.6 points");
 });

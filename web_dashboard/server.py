@@ -244,6 +244,12 @@ class Databricks:
                 {"job": job_id} if job_id else None)
         return self._runs[key]
 
+    def preload(self):
+        """Fetch every job's saved rankings and the audit totals once, so the first click is instant."""
+        for job in self.jobs():
+            self.saved(job_id=job["job_id"], model="both")
+        self.audits()
+
     def fix_data(self):
         summary = []
         for label, table, key in (("Resumes", RESUMES, "resume_id"), ("Jobs", JOBS, "job_id")):
@@ -308,9 +314,9 @@ def create_app(live=False):
     app.config["TRUSTED_HOSTS"] = ["127.0.0.1", "localhost"]
     database = Databricks() if live else None
     if live:
-        # Sign in and open the warehouse connection in the background so the first
-        # page load doesn't pay the ~4 s cold start.
-        Thread(target=lambda: database.query("SELECT 1"), daemon=True).start()
+        # Sign in, open the warehouse connection, and load every job's saved rankings in
+        # the background so neither the first page load nor the first job pays for it.
+        Thread(target=database.preload, daemon=True).start()
     runs = {}
     scan_history = []
     recorded_runs = set()
